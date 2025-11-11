@@ -1,0 +1,52 @@
+PATH
+  remote: ../..
+  specs:
+    gtfs-df (0.1.0)
+      networkx (~> 0.4)
+      polars-df (~> 0.22)
+      rubyzip (~> 2.3)
+
+GEM
+  remote: https://gem.coop/
+  specs:
+    bigdecimal (3.3.1)
+    matrix (0.4.3)
+    networkx (0.4.0)
+      matrix (~> 0.4)
+      rb_heap (~> 1.0)
+    optparse (0.8.0)
+    polars-df (0.23.0-aarch64-linux)
+      bigdecimal
+    polars-df (0.23.0-aarch64-linux-musl)
+      bigdecimal
+    polars-df (0.23.0-arm64-darwin)
+      bigdecimal
+    polars-df (0.23.0-x86_64-darwin)
+      bigdecimal
+    polars-df (0.23.0-x86_64-linux)
+      bigdecimal
+    polars-df (0.23.0-x86_64-linux-musl)
+      bigdecimal
+    rb_heap (1.1.0)
+    rubyzip (2.4.1)
+    unicode-display_width (3.2.0)
+      unicode-emoji (~> 4.1)
+    unicode-emoji (4.1.0)
+    whirly (0.3.0)
+      unicode-display_width (>= 1.1)
+
+PLATFORMS
+  aarch64-linux
+  aarch64-linux-musl
+  arm64-darwin
+  x86_64-darwin
+  x86_64-linux
+  x86_64-linux-musl
+
+DEPENDENCIES
+  gtfs-df!
+  optparse
+  whirly
+
+BUNDLED WITH
+   2.6.9
