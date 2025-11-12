@@ -1,9 +1,9 @@
 # frozen_string_literal: true
 
-require_relative "lib/gtfs-df/version"
+require_relative "lib/gtfs_df/version"
 
 Gem::Specification.new do |spec|
-  spec.name = "gtfs-df"
+  spec.name = "gtfs_df"
   spec.version = GtfsDf::VERSION
   spec.authors = ["David Mejorado"]
   spec.email = ["david.mejorado@gmail.com"]

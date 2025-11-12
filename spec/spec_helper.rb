@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-require "gtfs-df"
+require "gtfs_df"
 
 RSpec.configure do |config|
   # Enable flags like --only-failures and --next-failure

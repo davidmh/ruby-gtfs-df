@@ -1,7 +1,7 @@
 PATH
   remote: ../..
   specs:
-    gtfs-df (0.1.0)
+    gtfs_df (0.1.0)
       networkx (~> 0.4)
       polars-df (~> 0.22)
       rubyzip (~> 2.3)
@@ -44,7 +44,7 @@ PLATFORMS
   x86_64-linux-musl
 
 DEPENDENCIES
-  gtfs-df!
+  gtfs_df!
   optparse
   whirly
 

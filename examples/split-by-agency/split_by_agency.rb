@@ -3,7 +3,7 @@
 
 require "optparse"
 require "fileutils"
-require "gtfs-df"
+require "gtfs_df"
 require "whirly"
 
 options = {}

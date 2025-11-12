@@ -25,7 +25,7 @@ gem install UPDATE_WITH_YOUR_GEM_NAME_IMMEDIATELY_AFTER_RELEASE_TO_RUBYGEMS_ORG
 ### Loading a GTFS feed
 
 ```ruby
-require 'gtfs-df'
+require 'gtfs_df'
 
 # Load from a zip file
 feed = GtfsDf::Reader.load_from_zip('path/to/gtfs.zip')
@@ -86,12 +86,12 @@ To install this gem onto your local machine, run `bundle exec rake install`. To 
 ## TODO
 
 - [ ] Time parsing
-    Just like partridge, we should parse Time as seconds since midnight. There's a draft in `lib/gtfs-df/utils.rb` but it's not used anywhere.
+    Just like partridge, we should parse Time as seconds since midnight. There's a draft in `lib/gtfs_df/utils.rb` but it's not used anywhere.
     I haven't figured out how to properly implement with Polars.
 
 ## Contributing
 
-Bug reports and pull requests are welcome on GitHub at https://github.com/davidmh/ruby-gtfs-df.
+Bug reports and pull requests are welcome on GitHub at https://github.com/davidmh/ruby-gtfs_df.
 
 ## License
 

@@ -1,6 +1,6 @@
 # Split GTFS by Agency Example
 
-This example demonstrates how to split a GTFS zip file into multiple files, one for each specified `agency_id`, using the `gtfs-df` Ruby gem.
+This example demonstrates how to split a GTFS zip file into multiple files, one for each specified `agency_id`, using the `gtfs_df` Ruby gem.
 
 ## Usage
 

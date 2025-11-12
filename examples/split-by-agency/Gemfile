@@ -1,5 +1,5 @@
 source "https://gem.coop"
 
-gem "gtfs-df", path: "../.."
+gem "gtfs_df", path: "../.."
 gem "optparse"
 gem "whirly"

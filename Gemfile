@@ -2,7 +2,7 @@
 
 source "https://gem.coop"
 
-# Specify your gem's dependencies in gtfs-df.gemspec
+# Specify your gem's dependencies in gtfs_df.gemspec
 gemspec
 
 group :development, :test do
