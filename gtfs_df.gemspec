@@ -9,7 +9,7 @@ Gem::Specification.new do |spec|
   spec.email = ["david.mejorado@gmail.com"]
 
   spec.summary = "Manipulate GTFS feeds using DataFrames with Polars"
-  spec.description = "A Ruby gem to load, filter, and manipulate GTFS (General Transit Feed Specification) feeds using DataFrames powered by Polars. Supports cascading filters that maintain referential integrity across related tables."
+  spec.description = "A Ruby gem to load, filter, and manipulate GTFS (General Transit Feed Specification) feeds using DataFrames powered by Polars. Supports cascading filters that maintain referential integrity across related tables. NOTE: This gem is not ready for production use."
   spec.homepage = "https://github.com/davidmh/ruby-gtfs-df"
   spec.license = "MIT"
   spec.required_ruby_version = ">= 3.1.0"
