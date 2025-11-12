@@ -7,7 +7,7 @@ policies:
               case: lower
               invalidLastCharacters: .
           body:
-              required: true
+              required: false
           dco: false
           spellcheck:
               locale: US
