@@ -1,13 +1,20 @@
-name: Ruby
+name: Tests
 
 on:
   push:
-    branches:
-      - main
-
   pull_request:
 
 jobs:
+  commit-check:
+    runs-on: ubuntu-latest
+    name: Commit Message Check
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Conform Action
+        uses: siderolabs/conform@v0.1.0-alpha.29
+
   build:
     runs-on: ubuntu-latest
     name: Ruby ${{ matrix.ruby }}
