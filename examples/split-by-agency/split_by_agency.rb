@@ -40,12 +40,19 @@ end
 
 agency_ids.each do |agency_id|
   Whirly.start do
-    Whirly.status = "-> #{agency_id} filtering..."
     output_path = File.join(output_dir, "#{agency_id}.zip")
+
+    start_time = Time.now
+
+    Whirly.status = "-> #{agency_id} filtering..."
     filtered_feed = feed.filter("agency" => {"agency_id" => agency_id})
+
     Whirly.status = "-> #{agency_id} writing..."
     GtfsDf::Writer.write_to_zip(filtered_feed, output_path)
-    Whirly.status = "-> #{agency_id}"
+
+    elapsed = Time.now - start_time
+
+    Whirly.status = "-> #{agency_id}.zip (#{elapsed.round(2)}s)"
   end
 end
 
