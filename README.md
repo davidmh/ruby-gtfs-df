@@ -22,7 +22,60 @@ gem install UPDATE_WITH_YOUR_GEM_NAME_IMMEDIATELY_AFTER_RELEASE_TO_RUBYGEMS_ORG
 
 ## Usage
 
-TODO: Write usage instructions here
+### Loading a GTFS feed
+
+```ruby
+require 'gtfs-df'
+
+# Load from a zip file
+feed = GtfsDf::Reader.load_from_zip('path/to/gtfs.zip')
+
+# Access dataframes for each GTFS file
+puts feed.agency.head
+puts feed.routes.head
+puts feed.trips.head
+puts feed.stop_times.head
+puts feed.stops.head
+```
+
+### Filtering feeds
+
+The library supports filtering feeds by any field in any table. The filter automatically cascades through the dependency graph to ensure referential integrity.
+
+```ruby
+# Filter by agency
+filtered_feed = feed.filter('agency' => { 'agency_id' => 'MTA' })
+
+# Filter by route
+filtered_feed = feed.filter('routes' => { 'route_id' => ['1', '2', '3'] })
+
+# Filter by a service
+filtered_feed = feed.filter('calendar' => { 'service_id' => 'WEEKDAY' })
+
+# Multiple filters
+filtered_feed = feed.filter(
+  'agency' => { 'agency_id' => 'MTA' },
+  'routes' => { 'route_type' => 1 } # Filter to subway routes
+)
+```
+
+When you filter by a field, the library automatically:
+1. Filters the specified table
+2. Cascades related tables following foreign key relationships
+3. Keeps only the data that maintains referential integrity
+
+For example, filtering by `agency_id` will automatically filter routes, trips, stop_times, and stops to only include data for that agency.
+
+### Writing filtered feeds
+
+```ruby
+# Write to a new zip file
+GtfsDf::Writer.write_to_zip(filtered_feed, 'output/filtered_gtfs.zip')
+```
+
+### Example: Split feed by agency
+
+See [examples/split-by-agency](examples/split-by-agency) for a complete example that splits a multi-agency GTFS feed into separate files per agency.
 
 ## Development
 
