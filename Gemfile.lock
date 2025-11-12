@@ -24,10 +24,12 @@ GEM
     lint_roller (1.1.0)
     logger (1.7.0)
     matrix (0.4.3)
+    mini_portile2 (2.8.9)
     networkx (0.4.0)
       matrix (~> 0.4)
       rb_heap (~> 1.0)
-    nokogiri (1.18.10-arm64-darwin)
+    nokogiri (1.18.10)
+      mini_portile2 (~> 2.8.2)
       racc (~> 1.4)
     observer (0.1.2)
     ostruct (0.6.3)
@@ -35,13 +37,17 @@ GEM
     parser (3.3.9.0)
       ast (~> 2.4.1)
       racc
-    polars-df (0.22.0-arm64-darwin)
+    polars-df (0.22.0)
       bigdecimal
+      rb_sys
     prism (1.6.0)
     racc (1.8.1)
     rainbow (3.1.1)
     rake (13.3.0)
+    rake-compiler-dock (1.9.1)
     rb_heap (1.1.0)
+    rb_sys (0.9.117)
+      rake-compiler-dock (= 1.9.1)
     rbs (3.9.5)
       logger
     regexp_parser (2.11.3)
@@ -129,7 +135,7 @@ GEM
       yard (~> 0.9)
 
 PLATFORMS
-  arm64-darwin-25
+  ruby
 
 DEPENDENCIES
   gtfs-df!
