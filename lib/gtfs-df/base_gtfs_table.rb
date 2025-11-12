@@ -21,7 +21,7 @@ module GtfsDf
           end
           Polars::DataFrame.new(df_input, schema_overrides: self.class::SCHEMA, strict: false)
         else
-          throw GtfsDf::Error, 'Unrecognized input'
+          throw GtfsDf::Error, "Unrecognized input"
         end
       @validator = SchemaValidator.new(@df, self.class)
     end

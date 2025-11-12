@@ -4,8 +4,8 @@ module GtfsDf
   module Schema
     class LocationGroupStops < BaseGtfsTable
       SCHEMA = {
-        'location_group_id' => Polars::String,
-        'stop_id' => Polars::String
+        "location_group_id" => Polars::String,
+        "stop_id" => Polars::String
       }.freeze
 
       REQUIRED_FIELDS = %w[

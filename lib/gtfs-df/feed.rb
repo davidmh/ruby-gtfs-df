@@ -44,21 +44,21 @@ module GtfsDf
     def initialize(data = {})
       missing = REQUIRED_GTFS_FILES.reject { |file| data[file].is_a?(Polars::DataFrame) }
       # At least one of calendar or calendar_dates must be present
-      unless data['calendar'].is_a?(Polars::DataFrame) || data['calendar_dates'].is_a?(Polars::DataFrame)
-        missing << 'calendar.txt or calendar_dates.txt'
+      unless data["calendar"].is_a?(Polars::DataFrame) || data["calendar_dates"].is_a?(Polars::DataFrame)
+        missing << "calendar.txt or calendar_dates.txt"
       end
       unless missing.empty?
         raise GtfsDf::Error, "Missing required GTFS files: #{missing.map do |f|
-          f.end_with?('.txt') ? f : f + '.txt'
-        end.join(', ')}"
+          f.end_with?(".txt") ? f : f + ".txt"
+        end.join(", ")}"
       end
 
       GTFS_FILES.each do |file|
         df = data[file]
-        schema_class_name = file.split('_').map(&:capitalize).join
+        schema_class_name = file.split("_").map(&:capitalize).join
         schema_class = begin
           GtfsDf::Schema.const_get(schema_class_name)
-        rescue StandardError
+        rescue
           nil
         end
         if df.is_a?(Polars::DataFrame) && schema_class && schema_class.const_defined?(:SCHEMA)
@@ -75,7 +75,7 @@ module GtfsDf
         path = File.join(dir, "#{file}.txt")
         next unless File.exist?(path)
 
-        schema_class_name = file.split('_').map(&:capitalize).join
+        schema_class_name = file.split("_").map(&:capitalize).join
 
         data[file] = GtfsDf::Schema.const_get(schema_class_name).new(path)
       end
@@ -96,12 +96,12 @@ module GtfsDf
         if filters && !filters.empty?
           filters.each do |col, val|
             df = if val.is_a?(Array)
-                   df.filter(Polars.col(col).is_in(val))
-                 elsif val.respond_to?(:call)
-                   df.filter(val.call(Polars.col(col)))
-                 else
-                   df.filter(Polars.col(col).eq(val))
-                 end
+              df.filter(Polars.col(col).is_in(val))
+            elsif val.respond_to?(:call)
+              df.filter(val.call(Polars.col(col)))
+            else
+              df.filter(Polars.col(col).eq(val))
+            end
           end
         end
         filtered[file] = df
@@ -123,9 +123,9 @@ module GtfsDf
             attrs[:dependencies].each do |dep|
               parent_col = dep[parent_file]
               child_col = dep[child_file]
-              
+
               next unless parent_col && child_col &&
-                          parent_df.columns.include?(parent_col) && child_df.columns.include?(child_col)
+                parent_df.columns.include?(parent_col) && child_df.columns.include?(child_col)
 
               # Get valid values from parent
               valid_values = parent_df[parent_col].to_a.uniq.compact

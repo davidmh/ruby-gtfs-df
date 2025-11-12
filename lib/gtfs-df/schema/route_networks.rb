@@ -4,8 +4,8 @@ module GtfsDf
   module Schema
     class RouteNetworks < BaseGtfsTable
       SCHEMA = {
-        'route_id' => Polars::String,
-        'network_id' => Polars::String
+        "route_id" => Polars::String,
+        "network_id" => Polars::String
       }.freeze
 
       REQUIRED_FIELDS = %w[

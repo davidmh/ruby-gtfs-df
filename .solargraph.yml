@@ -1,22 +1,26 @@
 ---
 include:
-  - Rakefile
-  - Gemfile
-  - "*.gemspec"
-  - "**/*.rb"
+- Rakefile
+- Gemfile
+- "*.gemspec"
+- "**/*.rb"
 exclude:
-  - spec/**/*
-  - test/**/*
-  - vendor/**/*
-  - ".bundle/**/*"
+- spec/**/*
+- test/**/*
+- vendor/**/*
+- ".bundle/**/*"
 require: []
 domains: []
 reporters:
-  - standardrb
-  - require_not_found
+- rubocop
+- require_not_found
 formatter:
-  - standardrb
+  rubocop:
+    cops: safe
+    except: []
+    only: []
+    extra_args: []
+    lint: true
 require_paths: []
-plugins:
-  - solargraph-standardrb
+plugins: []
 max_files: 5000

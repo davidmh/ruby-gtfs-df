@@ -1,18 +1,18 @@
 # frozen_string_literal: true
 
-require 'spec_helper'
+require "spec_helper"
 
 RSpec.describe GtfsDf::Writer do
-  let(:fixture_zip) { File.expand_path('../fixtures/sample_gtfs.zip', __dir__) }
-  let(:output_zip) { File.expand_path('../../fixtures/output_gtfs.zip', __dir__) }
-  let(:filtered_zip) { File.expand_path('../../fixtures/filtered_gtfs.zip', __dir__) }
+  let(:fixture_zip) { File.expand_path("../fixtures/sample_gtfs.zip", __dir__) }
+  let(:output_zip) { File.expand_path("../../fixtures/output_gtfs.zip", __dir__) }
+  let(:filtered_zip) { File.expand_path("../../fixtures/filtered_gtfs.zip", __dir__) }
 
   after do
     FileUtils.rm_f(output_zip)
     FileUtils.rm_f(filtered_zip)
   end
 
-  it 'exports a Feed to a GTFS zip file' do
+  it "exports a Feed to a GTFS zip file" do
     feed = GtfsDf::Reader.load_from_zip(fixture_zip)
     GtfsDf::Writer.write_to_zip(feed, output_zip)
     expect(File.exist?(output_zip)).to be true
@@ -24,18 +24,18 @@ RSpec.describe GtfsDf::Writer do
     expect(files.sort).to match_array(input_files.sort)
   end
 
-  it 'exports a filtered Feed to a GTFS zip file' do
+  it "exports a filtered Feed to a GTFS zip file" do
     feed = GtfsDf::Reader.load_from_zip(fixture_zip)
     # Filter: select only the first route
-    route_ids = feed.routes['route_id'].to_a.first(1)
-    filtered_feed = feed.filter({ 'routes' => { 'route_id' => route_ids } })
+    route_ids = feed.routes["route_id"].to_a.first(1)
+    filtered_feed = feed.filter({"routes" => {"route_id" => route_ids}})
     GtfsDf::Writer.write_to_zip(filtered_feed, filtered_zip)
     expect(File.exist?(filtered_zip)).to be true
 
     # Unzip and check that routes.txt only contains the filtered route
     routes_txt = nil
     Zip::File.open(filtered_zip) do |zip|
-      entry = zip.find_entry('routes.txt')
+      entry = zip.find_entry("routes.txt")
       expect(entry).not_to be_nil
       routes_txt = entry.get_input_stream.read
     end
@@ -48,14 +48,14 @@ RSpec.describe GtfsDf::Writer do
     expect(data_lines.first).to include(route_ids.first)
   end
 
-  describe 'round-trip data integrity' do
-    let(:roundtrip_zip) { File.expand_path('../../fixtures/roundtrip_gtfs.zip', __dir__) }
+  describe "round-trip data integrity" do
+    let(:roundtrip_zip) { File.expand_path("../../fixtures/roundtrip_gtfs.zip", __dir__) }
 
     after do
       FileUtils.rm_f(roundtrip_zip)
     end
 
-    it 'preserves data through write and read cycle' do
+    it "preserves data through write and read cycle" do
       original_feed = GtfsDf::Reader.load_from_zip(fixture_zip)
       GtfsDf::Writer.write_to_zip(original_feed, roundtrip_zip)
       reloaded_feed = GtfsDf::Reader.load_from_zip(roundtrip_zip)
@@ -67,21 +67,21 @@ RSpec.describe GtfsDf::Writer do
       expect(reloaded_feed.stop_times.height).to eq(original_feed.stop_times.height)
 
       # Compare route_ids
-      expect(reloaded_feed.routes['route_id'].to_a.sort).to eq(original_feed.routes['route_id'].to_a.sort)
+      expect(reloaded_feed.routes["route_id"].to_a.sort).to eq(original_feed.routes["route_id"].to_a.sort)
     end
   end
 
-  describe 'error handling' do
-    let(:readonly_dir_zip) { '/System/readonly_test.zip' }
+  describe "error handling" do
+    let(:readonly_dir_zip) { "/System/readonly_test.zip" }
 
-    it 'creates output directory if it does not exist' do
-      nested_output = File.expand_path('../../fixtures/nested/dir/output.zip', __dir__)
+    it "creates output directory if it does not exist" do
+      nested_output = File.expand_path("../../fixtures/nested/dir/output.zip", __dir__)
       begin
         feed = GtfsDf::Reader.load_from_zip(fixture_zip)
         GtfsDf::Writer.write_to_zip(feed, nested_output)
         expect(File.exist?(nested_output)).to be true
       ensure
-        FileUtils.rm_rf(File.expand_path('../../fixtures/nested', __dir__))
+        FileUtils.rm_rf(File.expand_path("../../fixtures/nested", __dir__))
       end
     end
   end

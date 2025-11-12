@@ -1,5 +1,5 @@
-source 'https://gem.coop'
+source "https://gem.coop"
 
-gem 'gtfs-df', path: '../..'
-gem 'optparse'
-gem 'whirly'
+gem "gtfs-df", path: "../.."
+gem "optparse"
+gem "whirly"

@@ -20,12 +20,12 @@ module GtfsDf
       return str if str.is_a?(Integer)
       return nil if str.nil? || (str.respond_to?(:strip) && str.strip.empty?)
 
-      parts = str.to_s.split(':')
+      parts = str.to_s.split(":")
       return nil unless parts.size == 3 && parts.all? { |p| p.match?(/^\d+$/) }
 
       hours, mins, secs = parts.map(&:to_i)
       hours * 3600 + mins * 60 + secs
-    rescue StandardError
+    rescue
       nil
     end
 
@@ -43,7 +43,7 @@ module GtfsDf
       return nil unless str.match?(/^\d{8}$/)
 
       begin
-        Date.strptime(str, '%Y%m%d')
+        Date.strptime(str, "%Y%m%d")
       rescue ArgumentError
         nil
       end

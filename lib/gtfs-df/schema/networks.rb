@@ -4,8 +4,8 @@ module GtfsDf
   module Schema
     class Networks < BaseGtfsTable
       SCHEMA = {
-        'network_id' => Polars::String,
-        'network_name' => Polars::String
+        "network_id" => Polars::String,
+        "network_name" => Polars::String
       }.freeze
 
       REQUIRED_FIELDS = %w[

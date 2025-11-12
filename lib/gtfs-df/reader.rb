@@ -15,7 +15,7 @@ module GtfsDf
 
               out_path = File.join(tmpdir, entry.name)
               entry.extract(out_path)
-              schema_class_name = file.split('_').map(&:capitalize).join
+              schema_class_name = file.split("_").map(&:capitalize).join
 
               data[file] = GtfsDf::Schema.const_get(schema_class_name).new(out_path).df
             end

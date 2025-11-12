@@ -4,8 +4,8 @@ module GtfsDf
   class Writer
     # Exports a Feed to a GTFS zip file
     def self.write_to_zip(feed, zip_path)
-      require 'stringio'
-      require 'zlib'
+      require "stringio"
+      require "zlib"
       FileUtils.mkdir_p(File.dirname(zip_path))
       Zip::File.open(zip_path, create: true) do |zipfile|
         GtfsDf::Feed::GTFS_FILES.each do |file|
