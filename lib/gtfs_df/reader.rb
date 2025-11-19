@@ -10,19 +10,36 @@ module GtfsDf
           zip_file.each do |entry|
             next unless entry.file?
 
-            GtfsDf::Feed::GTFS_FILES.each do |file|
-              next unless entry.name == "#{file}.txt"
+            GtfsDf::Feed::GTFS_FILES.each do |gtfs_file|
+              next unless entry.name == "#{gtfs_file}.txt"
 
               out_path = File.join(tmpdir, entry.name)
               entry.extract(out_path)
-              schema_class_name = file.split("_").map(&:capitalize).join
 
-              data[file] = GtfsDf::Schema.const_get(schema_class_name).new(out_path).df
+              data[gtfs_file] = data_frame(gtfs_file, out_path)
             end
           end
         end
       end
       GtfsDf::Feed.new(data)
+    end
+
+    # Loads a GTFS dir and returns a Feed
+    def self.load_from_dir(dir_path)
+      data = {}
+      GtfsDf::Feed::GTFS_FILES.each do |gtfs_file|
+        path = File.join(dir_path, "#{gtfs_file}.txt")
+        next unless File.exist?(path)
+
+        data[gtfs_file] = data_frame(gtfs_file, path)
+      end
+
+      GtfsDf::Feed.new(data)
+    end
+
+    private_class_method def self.data_frame(gtfs_file, path)
+      schema_class_name = gtfs_file.split("_").map(&:capitalize).join
+      GtfsDf::Schema.const_get(schema_class_name).new(path).df
     end
   end
 end
