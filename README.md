@@ -30,6 +30,9 @@ require 'gtfs_df'
 # Load from a zip file
 feed = GtfsDf::Reader.load_from_zip('path/to/gtfs.zip')
 
+# Or, load from a directory
+feed = GtfsDf::Reader.load_from_dir('path/to/gtfs_dir')
+
 # Access dataframes for each GTFS file
 puts feed.agency.head
 puts feed.routes.head
