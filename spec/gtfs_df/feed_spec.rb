@@ -191,8 +191,14 @@ RSpec.describe GtfsDf::Feed do
       view = {"routes" => {"route_id" => "NONEXISTENT"}}
       filtered = feed.filter(view)
       expect(filtered.routes.height).to eq(0)
-      # Trips should cascade and be empty since no valid routes exist
-      # Note: The current implementation may not remove all trips if they don't directly reference routes
+      # Trips and their stop_times should cascade and be empty since no valid routes exist
+      expect(filtered.trips.height).to eq(0)
+      expect(filtered.stop_times.height).to eq(0)
+      # No trips reference this calendar so deletion is cascaded
+      expect(filtered.calendar.height).to eq(0)
+
+      # Agency and calendar are not dependencies and should be untouched
+      expect(filtered.agency.height).to eq(1)
     end
 
     it "handles filtering with empty array" do
