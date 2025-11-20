@@ -113,7 +113,7 @@ module GtfsDf
         changed = false
         GTFS_FILES.each do |parent_file|
           parent_df = filtered[parent_file]
-          next unless parent_df && parent_df.height > 0
+          next unless parent_df
 
           # For each outgoing edge from parent_file to child_file
           graph.adj[parent_file]&.each do |child_file, attrs|
@@ -129,7 +129,6 @@ module GtfsDf
 
               # Get valid values from parent
               valid_values = parent_df[parent_col].to_a.uniq.compact
-              next if valid_values.empty?
 
               # Filter child to only include rows that reference valid parent values
               before = child_df.height
@@ -145,7 +144,13 @@ module GtfsDf
       end
 
       # Remove files that are empty, but keep required files even if empty
-      filtered.delete_if { |file, df| (!df || df.height == 0) && !REQUIRED_GTFS_FILES.include?(file) }
+      filtered.delete_if do |file, df|
+        is_required_file = REQUIRED_GTFS_FILES.include?(file) ||
+          file == "calendar" && !filtered["calendar_dates"] ||
+          file == "calendar_dates" && !filtered["calendar"]
+
+        (!df || df.height == 0) && !is_required_file
+      end
       self.class.new(filtered)
     end
   end
