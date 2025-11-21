@@ -9,6 +9,13 @@ RSpec.describe GtfsDf::BaseGtfsTable do
 
       schema = GtfsDf::Schema::Trips.new(trips_with_extra_cols_path)
       expect(schema.valid?).to be(true)
+
+      # Use the schema-defined dtype for all expected columns
+      enum_type = Polars::Enum.new(GtfsDf::Schema::EnumValues::BIKES_ALLOWED.map(&:first))
+      expect(schema.df["bikes_allowed"].dtype).to eq(enum_type)
+
+      # Cast all extra columns as strings
+      expect(schema.df["num_col"].dtype).to eq(Polars::String)
     end
   end
 end

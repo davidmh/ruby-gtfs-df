@@ -11,9 +11,9 @@ module GtfsDf
           input
         elsif input.is_a?(String)
           # We need to account for extra columns due to: https://github.com/ankane/ruby-polars/issues/125
-          # Note that this scans 100 rows to infer the schema
-          inferred_schema = Polars.scan_csv(input).schema
-          dtypes = inferred_schema.merge(self.class::SCHEMA)
+          all_columns = Polars.scan_csv(input).columns
+          default_schema = all_columns.map { |c| [c, Polars::String] }.to_h
+          dtypes = default_schema.merge(self.class::SCHEMA)
           Polars.read_csv(input, dtypes:)
         elsif input.is_a?(Array)
           head, *body = input
