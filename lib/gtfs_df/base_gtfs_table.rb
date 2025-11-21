@@ -10,7 +10,11 @@ module GtfsDf
         if input.is_a?(Polars::DataFrame)
           input
         elsif input.is_a?(String)
-          Polars.read_csv(input, dtypes: self.class::SCHEMA)
+          # We need to account for extra columns due to: https://github.com/ankane/ruby-polars/issues/125
+          all_columns = Polars.scan_csv(input).columns
+          default_schema = all_columns.map { |c| [c, Polars::String] }.to_h
+          dtypes = default_schema.merge(self.class::SCHEMA)
+          Polars.read_csv(input, dtypes:)
         elsif input.is_a?(Array)
           head, *body = input
           df_input = body.each_with_object({}) do |row, acc|
