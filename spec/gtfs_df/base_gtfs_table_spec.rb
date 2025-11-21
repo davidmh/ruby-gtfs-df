@@ -1,5 +1,4 @@
 require "spec_helper"
-require "byebug"
 
 RSpec.describe GtfsDf::BaseGtfsTable do
   describe "edge cases" do
