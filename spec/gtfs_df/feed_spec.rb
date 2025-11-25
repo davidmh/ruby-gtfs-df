@@ -59,29 +59,62 @@ RSpec.describe GtfsDf::Feed do
   end
 
   describe ".filter" do
-    it "filters DataFrames using the view hash" do
-      expect(feed.routes["route_id"].to_a).to eq(%w[1 2])
-      expect(feed.trips["service_id"].to_a).to eq(%w[A B])
+    describe "basic functionality" do
+      it "filters DataFrames using the view hash" do
+        expect(feed.routes["route_id"].to_a).to eq(%w[1 2])
+        expect(feed.trips["service_id"].to_a).to eq(%w[A B])
 
-      view = {"routes" => {"route_id" => "1"}}
-      filtered = feed.filter(view)
+        view = {"routes" => {"route_id" => "1"}}
+        filtered = feed.filter(view)
 
-      expect(filtered.routes["route_id"].to_a).to eq(["1"])
-      expect(filtered.trips["service_id"].to_a).to eq(%w[A])
+        expect(filtered.routes["route_id"].to_a).to eq(["1"])
+        expect(filtered.trips["service_id"].to_a).to eq(%w[A])
+      end
+
+      it "filters DataFrames using multiple values" do
+        view = {"routes" => {"route_id" => %w[1 2]}}
+        filtered = feed.filter(view)
+        expect(filtered.routes["route_id"].to_a).to eq(%w[1 2])
+        expect(filtered.trips["route_id"].to_a).to eq(%w[1 2])
+      end
+
+      it "filters DataFrames using a custom predicate" do
+        view = {"routes" => {"route_id" => ->(col) { col.str.starts_with("1") }}}
+        filtered = feed.filter(view)
+        expect(filtered.routes["route_id"].to_a).to eq(["1"])
+        expect(filtered.trips["route_id"].to_a).to eq(["1"])
+      end
     end
 
-    it "filters DataFrames using multiple values" do
-      view = {"routes" => {"route_id" => %w[1 2]}}
-      filtered = feed.filter(view)
-      expect(filtered.routes["route_id"].to_a).to eq(%w[1 2])
-      expect(filtered.trips["route_id"].to_a).to eq(%w[1 2])
-    end
+    describe "edge cases" do
+      let(:feed) do
+        described_class.new({"agency" => agency_df,
+                              "stops" => stops_df,
+                              "routes" => routes_df,
+                              "trips" => trips_df,
+                              "stop_times" => stop_times_df,
+                              "calendar" => calendar_df})
+      end
 
-    it "filters DataFrames using a custom predicate" do
-      view = {"routes" => {"route_id" => ->(col) { col.str.starts_with("1") }}}
-      filtered = feed.filter(view)
-      expect(filtered.routes["route_id"].to_a).to eq(["1"])
-      expect(filtered.trips["route_id"].to_a).to eq(["1"])
+      it "returns empty feed when filter matches nothing" do
+        view = {"routes" => {"route_id" => "NONEXISTENT"}}
+        filtered = feed.filter(view)
+        expect(filtered.routes.height).to eq(0)
+        # Trips and their stop_times should cascade and be empty since no valid routes exist
+        expect(filtered.trips.height).to eq(0)
+        expect(filtered.stop_times.height).to eq(0)
+        # No trips reference this calendar so deletion is cascaded
+        expect(filtered.calendar.height).to eq(0)
+
+        # Agency and calendar are not dependencies and should be untouched
+        expect(filtered.agency.height).to eq(1)
+      end
+
+      it "handles filtering with empty array" do
+        view = {"routes" => {"route_id" => []}}
+        filtered = feed.filter(view)
+        expect(filtered.routes.height).to eq(0)
+      end
     end
   end
 
@@ -174,37 +207,6 @@ RSpec.describe GtfsDf::Feed do
       data = minimal_feed_data.dup
       data["agency"] = "not a dataframe"
       expect { described_class.new(data) }.to raise_error(GtfsDf::Error, /Missing required GTFS files.*agency.txt/)
-    end
-  end
-
-  describe "filtering edge cases" do
-    let(:feed) do
-      described_class.new({"agency" => agency_df,
-                            "stops" => stops_df,
-                            "routes" => routes_df,
-                            "trips" => trips_df,
-                            "stop_times" => stop_times_df,
-                            "calendar" => calendar_df})
-    end
-
-    it "returns empty feed when filter matches nothing" do
-      view = {"routes" => {"route_id" => "NONEXISTENT"}}
-      filtered = feed.filter(view)
-      expect(filtered.routes.height).to eq(0)
-      # Trips and their stop_times should cascade and be empty since no valid routes exist
-      expect(filtered.trips.height).to eq(0)
-      expect(filtered.stop_times.height).to eq(0)
-      # No trips reference this calendar so deletion is cascaded
-      expect(filtered.calendar.height).to eq(0)
-
-      # Agency and calendar are not dependencies and should be untouched
-      expect(filtered.agency.height).to eq(1)
-    end
-
-    it "handles filtering with empty array" do
-      view = {"routes" => {"route_id" => []}}
-      filtered = feed.filter(view)
-      expect(filtered.routes.height).to eq(0)
     end
   end
 
