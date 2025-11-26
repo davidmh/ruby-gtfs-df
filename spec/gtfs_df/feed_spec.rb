@@ -417,7 +417,8 @@ RSpec.describe GtfsDf::Feed do
                                                                    "service_id" => ["S1"]}),
                                 "stop_times" => Polars::DataFrame.new({"trip_id" => ["T1"],
                                                                         "stop_id" => ["S1"],
-                                                                        "stop_sequence" => [1]}),
+                                                                        "stop_sequence" => [1],
+                                                                        "pickup_booking_rule_id" => %w[BR1]}),
                                 "calendar" => Polars::DataFrame.new({"service_id" => ["S1"],
                                                                       "monday" => ["1"],
                                                                       "tuesday" => ["1"],
@@ -441,7 +442,6 @@ RSpec.describe GtfsDf::Feed do
                                 "location_group_stops" => Polars::DataFrame.new({"location_group_id" => %w[LG1 LG2],
                                                                                   "stop_id" => %w[S1 S2]}),
                                 "booking_rules" => Polars::DataFrame.new({"booking_rule_id" => %w[BR1 BR2],
-                                                                           "stop_id" => %w[S1 S2],
                                                                            "booking_method" => %w[phone web],
                                                                            "info_url" => ["http://a", "http://b"]})})
       filtered = feed.filter({"stops" => {stop_id: ["S1"]}})
@@ -449,8 +449,7 @@ RSpec.describe GtfsDf::Feed do
       expect(filtered.areas["area_id"].to_a).to eq(["A1"])
       expect(filtered.location_groups["location_group_id"].to_a).to eq(["LG1"])
       expect(filtered.location_group_stops["stop_id"].to_a).to eq(["S1"])
-      # TODO: this is not an actual field on booking rules
-      # expect(filtered.booking_rules["stop_id"].to_a).to eq(["S1"])
+      expect(filtered.booking_rules["booking_rule_id"].to_a).to eq(["BR1"])
     end
   end
 end

@@ -90,11 +90,12 @@ RSpec.describe GtfsDf::Graph do
         "stops")[:dependencies]).to include({"location_group_stops" => "stop_id",
                                                                        "stops" => "stop_id"})
 
-      # Example: stops -> booking_rules
-      expect(graph.has_edge?("stops", "booking_rules")).to be true
-      expect(graph.get_edge_data("stops",
-        "booking_rules")[:dependencies]).to include({"stops" => "stop_id",
-                                                                               "booking_rules" => "stop_id"})
+      # Example: stop_times -> booking_rules
+      expect(graph.has_edge?("booking_rules", "stop_times")).to be true
+      expect(graph.get_edge_data("booking_rules",
+        "stop_times")[:dependencies]).to include(
+          {"booking_rules" => "booking_rule_id", "stop_times" => "pickup_booking_rule_id"}
+        )
     end
   end
 end
