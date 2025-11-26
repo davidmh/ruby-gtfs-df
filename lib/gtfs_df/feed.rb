@@ -70,20 +70,6 @@ module GtfsDf
       end
     end
 
-    # Load from a directory of GTFS CSV files
-    def self.load_from_dir(dir)
-      data = {}
-      GTFS_FILES.each do |file|
-        path = File.join(dir, "#{file}.txt")
-        next unless File.exist?(path)
-
-        schema_class_name = file.split("_").map(&:capitalize).join
-
-        data[file] = GtfsDf::Schema.const_get(schema_class_name).new(path)
-      end
-      new(data)
-    end
-
     # Filter the feed using a view hash
     # Example view: { 'routes' => { 'route_id' => '123' }, 'trips' => { 'service_id' => 'A' } }
     def filter(view)
