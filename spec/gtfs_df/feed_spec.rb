@@ -127,8 +127,7 @@ RSpec.describe GtfsDf::Feed do
         expect(filtered.calendar["service_id"].to_a).to eq(%w[A])
       end
 
-      # TODO: not yet passing
-      xit "filtering from stop cascades" do
+      it "filtering from stop cascades" do
         # We consider trips the "atomic unit" of GTFS
         # This means if we filter to a stop, we should essentially filter to all trips
         # which visit that stop and retain referential integrity for those trips
@@ -450,7 +449,8 @@ RSpec.describe GtfsDf::Feed do
       expect(filtered.areas["area_id"].to_a).to eq(["A1"])
       expect(filtered.location_groups["location_group_id"].to_a).to eq(["LG1"])
       expect(filtered.location_group_stops["stop_id"].to_a).to eq(["S1"])
-      expect(filtered.booking_rules["stop_id"].to_a).to eq(["S1"])
+      # TODO: this is not an actual field on booking rules
+      # expect(filtered.booking_rules["stop_id"].to_a).to eq(["S1"])
     end
   end
 end

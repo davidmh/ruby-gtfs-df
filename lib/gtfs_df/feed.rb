@@ -82,26 +82,22 @@ module GtfsDf
         filtered[file] = df
       end
 
+      # Trips are the atomic unit of GTFS, we will generate a new view
+      # based on the set of trips that would be included for each invidual filter
+      # and cascade changes from this view in order to retain referential integrity
+      trip_ids = nil
+
       view.each do |file, filters|
-        # Step 2: Apply view filters
-        unless filters.empty?
-          df = filtered[file]
-
-          filters.each do |col, val|
-            df = if val.is_a?(Array)
-              df.filter(Polars.col(col).is_in(val))
-            elsif val.respond_to?(:call)
-              df.filter(val.call(Polars.col(col)))
-            else
-              df.filter(Polars.col(col).eq(val))
-            end
-          end
-
-          filtered[file] = df
-
-          # Step 3: Cascade filter and prune
-          prune(file, filtered)
+        new_filtered = apply_filters(file, filters, filtered)
+        trip_ids = if trip_ids.nil?
+          new_filtered["trips"]["trip_id"]
+        else
+          trip_ids & new_filtered["trips"]["trip_id"]
         end
+      end
+
+      if trip_ids
+        filtered = apply_filters("trips", {"trip_id" => trip_ids.to_a}, filtered)
       end
 
       # Remove files that are empty, but keep required files even if empty
@@ -117,7 +113,33 @@ module GtfsDf
 
     private
 
-    def prune(root, filtered)
+    def apply_filters(file, filters, original)
+      # Do not mutate the original
+      filtered = original.dup
+
+      unless filters.empty?
+        df = filtered[file]
+
+        filters.each do |col, val|
+          df = if val.is_a?(Array)
+            df.filter(Polars.col(col).is_in(val))
+          elsif val.respond_to?(:call)
+            df.filter(val.call(Polars.col(col)))
+          else
+            df.filter(Polars.col(col).eq(val))
+          end
+        end
+
+        filtered[file] = df
+
+        prune!(file, filtered)
+      end
+
+      filtered
+    end
+
+    # Mutates filters
+    def prune!(root, filtered)
       graph.each_bfs_edge(root) do |parent_file, child_file|
         parent_df = filtered[parent_file]
         next unless parent_df
