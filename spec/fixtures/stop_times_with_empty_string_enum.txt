@@ -1,0 +1,2 @@
+"trip_id","stop_id","stop_sequence","shape_dist_traveled","arrival_time","departure_time","timepoint"
+"trip_id","1","0","0.0515749930800169","07:18:00","07:18:00",""
