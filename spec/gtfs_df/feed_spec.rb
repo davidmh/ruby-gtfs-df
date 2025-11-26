@@ -112,8 +112,7 @@ RSpec.describe GtfsDf::Feed do
                                 "stop_sequence" => [1, 2, 3, 1, 2]})
       end
 
-      # TODO: not yet passing
-      xit "filtering from trips cascades" do
+      it "filtering from trips cascades" do
         # We consider trips the "atomic unit" of GTFS
         view = {"trips" => {"trip_id" => %w[t1]}}
         filtered = feed.filter(view)
@@ -121,8 +120,7 @@ RSpec.describe GtfsDf::Feed do
         # When trips are filtered, we expect the filters to propagate to stop_times
         expect(filtered.stop_times["stop_id"].to_a).to eq(%w[S1 S2 S3])
 
-        # And for to then cascade upwards and remove unreferenced routes, calendars,
-        # stops, agencies, etc.
+        # Remove unreferenced objects
         expect(filtered.stops["stop_id"].to_a).to eq(%w[S1 S2 S3])
         expect(filtered.routes["route_id"].to_a).to eq(%w[1])
         expect(filtered.agency["agency_id"].to_a).to eq(%w[A])
@@ -158,13 +156,13 @@ RSpec.describe GtfsDf::Feed do
         expect(filtered.routes["route_id"].to_a).to eq(%w[1])
         expect(filtered.trips["trip_id"].to_a).to eq(%w[t1])
         expect(filtered.stop_times["stop_id"].to_a).to eq(%w[S1 S2 S3])
-        # We remove the unreferenced stops
+
+        # Remove unreferenced objects
         expect(filtered.stops["stop_id"].to_a).to eq(%w[S1 S2 S3])
         expect(filtered.calendar["service_id"].to_a).to eq(%w[A])
       end
 
-      # TODO: not yet passing
-      xit "filtering from calendar cascades" do
+      it "filtering from calendar cascades" do
         # Filtering by agency should cascade to routes -> trips -> etc.
         view = {"calendar" => {"service_id" => %w[A]}}
         filtered = feed.filter(view)
@@ -175,7 +173,7 @@ RSpec.describe GtfsDf::Feed do
         expect(filtered.trips["trip_id"].to_a).to eq(%w[t1])
         expect(filtered.stop_times["stop_id"].to_a).to eq(%w[S1 S2 S3])
 
-        # Cascade upwards to unreferenced stops, route, agency
+        # Remove unreferenced objects
         expect(filtered.stops["stop_id"].to_a).to eq(%w[S1 S2 S3])
         expect(filtered.routes["route_id"].to_a).to eq(%w[1])
         expect(filtered.agency["agency_id"].to_a).to eq(%w[A])
@@ -201,9 +199,8 @@ RSpec.describe GtfsDf::Feed do
         expect(filtered.stop_times.height).to eq(0)
         # No trips reference this calendar so deletion is cascaded
         expect(filtered.calendar.height).to eq(0)
-
-        # Agency and calendar are not dependencies and should be untouched
-        expect(filtered.agency.height).to eq(1)
+        # No trips reference this agency so deletion is cascaded
+        expect(filtered.agency.height).to eq(0)
       end
 
       it "handles filtering with empty array" do

@@ -5,8 +5,7 @@ RSpec.describe GtfsDf::Graph do
     let(:graph) { described_class.build }
 
     it "includes all GTFS files as nodes" do
-      node_names = graph.nodes.map { |n| n[0] }
-      expect(node_names.sort).to include(*%w[agency
+      expect(graph.nodes.sort).to include(*%w[agency
         routes
         trips
         stop_times

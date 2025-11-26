@@ -36,7 +36,7 @@ module GtfsDf
       booking_rules
     ].freeze
 
-    attr_reader(*GTFS_FILES)
+    attr_reader(*GTFS_FILES, :graph)
 
     # Initialize with a hash of DataFrames
     REQUIRED_GTFS_FILES = %w[agency stops routes trips stop_times].freeze
@@ -52,6 +52,8 @@ module GtfsDf
           f.end_with?(".txt") ? f : f + ".txt"
         end.join(", ")}"
       end
+
+      @graph = GtfsDf::Graph.build
 
       GTFS_FILES.each do |file|
         df = data[file]
@@ -86,14 +88,19 @@ module GtfsDf
     # Example view: { 'routes' => { 'route_id' => '123' }, 'trips' => { 'service_id' => 'A' } }
     def filter(view)
       filtered = {}
-      graph = GtfsDf::Graph.build
-      # Step 1: Apply view filters
+
       GTFS_FILES.each do |file|
         df = send(file)
         next unless df
 
-        filters = view[file]
-        if filters && !filters.empty?
+        filtered[file] = df
+      end
+
+      view.each do |file, filters|
+        # Step 2: Apply view filters
+        unless filters.empty?
+          df = filtered[file]
+
           filters.each do |col, val|
             df = if val.is_a?(Array)
               df.filter(Polars.col(col).is_in(val))
@@ -103,43 +110,11 @@ module GtfsDf
               df.filter(Polars.col(col).eq(val))
             end
           end
-        end
-        filtered[file] = df
-      end
-      # Step 2: Cascade filters following the directed edges
-      # An edge from parent->child means: filter child based on valid parent IDs
-      changed = true
-      while changed
-        changed = false
-        GTFS_FILES.each do |parent_file|
-          parent_df = filtered[parent_file]
-          next unless parent_df
 
-          # For each outgoing edge from parent_file to child_file
-          graph.adj[parent_file]&.each do |child_file, attrs|
-            child_df = filtered[child_file]
-            next unless child_df && child_df.height > 0
+          filtered[file] = df
 
-            attrs[:dependencies].each do |dep|
-              parent_col = dep[parent_file]
-              child_col = dep[child_file]
-
-              next unless parent_col && child_col &&
-                parent_df.columns.include?(parent_col) && child_df.columns.include?(child_col)
-
-              # Get valid values from parent
-              valid_values = parent_df[parent_col].to_a.uniq.compact
-
-              # Filter child to only include rows that reference valid parent values
-              before = child_df.height
-              child_df = child_df.filter(Polars.col(child_col).is_in(valid_values))
-
-              if child_df.height < before
-                filtered[child_file] = child_df
-                changed = true
-              end
-            end
-          end
+          # Step 3: Cascade filter and prune
+          prune(file, filtered)
         end
       end
 
@@ -152,6 +127,39 @@ module GtfsDf
         (!df || df.height == 0) && !is_required_file
       end
       self.class.new(filtered)
+    end
+
+    private
+
+    def prune(root, filtered)
+      graph.each_bfs_edge(root) do |parent_file, child_file|
+        parent_df = filtered[parent_file]
+        next unless parent_df
+
+        child_df = filtered[child_file]
+        next unless child_df && child_df.height > 0
+
+        attrs = graph.get_edge_data(parent_file, child_file)
+
+        attrs[:dependencies].each do |dep|
+          parent_col = dep[parent_file]
+          child_col = dep[child_file]
+
+          next unless parent_col && child_col &&
+            parent_df.columns.include?(parent_col) && child_df.columns.include?(child_col)
+
+          # Get valid values from parent
+          valid_values = parent_df[parent_col].to_a.uniq.compact
+
+          # Filter child to only include rows that reference valid parent values
+          before = child_df.height
+          child_df = child_df.filter(Polars.col(child_col).is_in(valid_values))
+
+          if child_df.height < before
+            filtered[child_file] = child_df
+          end
+        end
+      end
     end
   end
 end

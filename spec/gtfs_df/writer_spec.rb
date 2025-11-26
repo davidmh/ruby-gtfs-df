@@ -42,7 +42,6 @@ RSpec.describe GtfsDf::Writer do
 
     # Check that only the filtered route_id is present
     lines = routes_txt.lines.map(&:strip)
-    lines.first
     data_lines = lines.drop(1)
     expect(data_lines.size).to eq(1)
     expect(data_lines.first).to include(route_ids.first)
