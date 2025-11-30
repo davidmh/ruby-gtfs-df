@@ -1,0 +1,47 @@
+name: Publish gem to rubygems.org
+# Adapted from https://github.com/ruby/openssl/blob/deb87bf33c41212f1b68a1d46b9d24957695d95d/.github/workflows/push_gem.yml
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: read
+
+jobs:
+  push:
+    if: github.repository == 'davidmh/ruby-gtfs-df'
+    runs-on: ubuntu-latest
+
+    environment:
+      name: rubygems.org
+      url: https://rubygems.org/gems/gtfs_df
+
+    permissions:
+      contents: write
+      id-token: write
+
+    strategy:
+      matrix:
+        ruby:
+          - '3.4.7'
+
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Set up Ruby
+        uses: ruby/setup-ruby@v1
+        with:
+          bundler-cache: true
+          ruby-version: ${{ matrix.ruby }}
+
+      - name: Publish to RubyGems
+        uses: rubygems/release-gem@v1
+
+      - name: Create GitHub release
+        run: |
+          tag_name="$(git describe --tags --abbrev=0)"
+          gh release create "${tag_name}" --verify-tag --draft --generate-notes pkg/*.gem
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
