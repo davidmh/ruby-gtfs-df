@@ -88,7 +88,7 @@ module GtfsDf
       trip_ids = nil
 
       view.each do |file, filters|
-        new_filtered = apply_filters(file, filters, filtered)
+        new_filtered = filter!(file, filters, filtered.dup)
         trip_ids = if trip_ids.nil?
           new_filtered["trips"]["trip_id"]
         else
@@ -97,7 +97,7 @@ module GtfsDf
       end
 
       if trip_ids
-        filtered = apply_filters("trips", {"trip_id" => trip_ids.to_a}, filtered)
+        filtered = filter!("trips", {"trip_id" => trip_ids.to_a}, filtered)
       end
 
       # Remove files that are empty, but keep required files even if empty
@@ -113,10 +113,7 @@ module GtfsDf
 
     private
 
-    def apply_filters(file, filters, original)
-      # Do not mutate the original
-      filtered = original.dup
-
+    def filter!(file, filters, filtered)
       unless filters.empty?
         df = filtered[file]
 
@@ -138,7 +135,6 @@ module GtfsDf
       filtered
     end
 
-    # Mutates filters
     def prune!(root, filtered)
       graph.each_bfs_edge(root) do |parent_file, child_file|
         parent_df = filtered[parent_file]
