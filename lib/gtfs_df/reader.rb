@@ -29,6 +29,23 @@ module GtfsDf
         next unless File.exist?(path)
 
         data[gtfs_file] = data_frame(gtfs_file, path)
+
+        # Explicit handling for parent stations. We separate these out to avoid
+        # a self-loop and recombine when writing. If multiple files end up having
+        # self-loops, we would be better off generalizing the graph logic.
+        if gtfs_file == "stops" && data["stops"].columns.include?("location_type")
+          df = data["stops"]
+          data["stops"] = df.filter(
+            Polars.col("location_type").is_in(
+              GtfsDf::Schema::EnumValues::STOP_LOCATION_TYPES.map(&:first)
+            )
+          )
+          data["parent_stations"] = df.filter(
+            Polars.col("location_type").is_in(
+              GtfsDf::Schema::EnumValues::STATION_LOCATION_TYPES.map(&:first)
+            )
+          )
+        end
       end
 
       GtfsDf::Feed.new(data)

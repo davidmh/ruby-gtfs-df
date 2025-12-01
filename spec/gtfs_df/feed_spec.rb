@@ -40,6 +40,12 @@ RSpec.describe GtfsDf::Feed do
                             "start_date" => %w[20250101 20250101],
                             "end_date" => %w[20251231 20251231]})
   end
+  let(:parent_stations_df) do
+    Polars::DataFrame.new({"stop_id" => [],
+                            "stop_name" => [],
+                            "stop_lat" => [],
+                            "stop_lon" => []})
+  end
   let(:feed) do
     described_class.new(
       "agency" => agency_df,
@@ -47,7 +53,8 @@ RSpec.describe GtfsDf::Feed do
       "routes" => routes_df,
       "trips" => trips_df,
       "stop_times" => stop_times_df,
-      "calendar" => calendar_df
+      "calendar" => calendar_df,
+      "parent_stations" => parent_stations_df
     )
   end
 
@@ -98,11 +105,23 @@ RSpec.describe GtfsDf::Feed do
                                 "agency_id" => %w[A B],
                                 "route_short_name" => %w[A B]})
       end
+      # S5 is the parent station for S1
+      # S6 is the parent station for S4
       let(:stops_df) do
         Polars::DataFrame.new({"stop_id" => %w[S1 S2 S3 S4],
                                 "stop_name" => %w[Stop1 Stop2 Stop3 Stop4],
                                 "stop_lat" => %w[0 1 2 3],
-                                "stop_lon" => %w[0 1 2 3]})
+                                "stop_lon" => %w[0 1 2 3],
+                                "parent_station" => ["S5", nil, nil, "S6"],
+                                "location_type" => %w[0 0 0 0]})
+      end
+      let(:parent_stations_df) do
+        Polars::DataFrame.new({"stop_id" => %w[S5 S6],
+                                "stop_name" => %w[Station1 Station2],
+                                "stop_lat" => %w[0 0],
+                                "stop_lon" => %w[0 0],
+                                "parent_station" => [nil, nil],
+                                "location_type" => %w[1 1]})
       end
       # Trip 1 visits stops 1,2,3
       # Trip 2 visits stops 2,4
@@ -122,6 +141,7 @@ RSpec.describe GtfsDf::Feed do
 
         # Remove unreferenced objects
         expect(filtered.stops["stop_id"].to_a).to eq(%w[S1 S2 S3])
+        expect(filtered.parent_stations["stop_id"].to_a).to eq(%w[S5])
         expect(filtered.routes["route_id"].to_a).to eq(%w[1])
         expect(filtered.agency["agency_id"].to_a).to eq(%w[A])
         expect(filtered.calendar["service_id"].to_a).to eq(%w[A])
@@ -140,6 +160,7 @@ RSpec.describe GtfsDf::Feed do
 
         # Retain all stops referenced by T1 T1
         expect(filtered.stops["stop_id"].to_a).to eq(%w[S1 S2 S3])
+        expect(filtered.parent_stations["stop_id"].to_a).to eq(%w[S5])
         expect(filtered.routes["route_id"].to_a).to eq(%w[1])
         expect(filtered.agency["agency_id"].to_a).to eq(%w[A])
         expect(filtered.calendar["service_id"].to_a).to eq(%w[A])
@@ -155,6 +176,7 @@ RSpec.describe GtfsDf::Feed do
         expect(filtered.routes["route_id"].to_a).to eq(%w[1])
         expect(filtered.trips["trip_id"].to_a).to eq(%w[t1])
         expect(filtered.stop_times["stop_id"].to_a).to eq(%w[S1 S2 S3])
+        expect(filtered.parent_stations["stop_id"].to_a).to eq(%w[S5])
 
         # Remove unreferenced objects
         expect(filtered.stops["stop_id"].to_a).to eq(%w[S1 S2 S3])
@@ -171,6 +193,7 @@ RSpec.describe GtfsDf::Feed do
         # Only keep trips and stop times for this service
         expect(filtered.trips["trip_id"].to_a).to eq(%w[t1])
         expect(filtered.stop_times["stop_id"].to_a).to eq(%w[S1 S2 S3])
+        expect(filtered.parent_stations["stop_id"].to_a).to eq(%w[S5])
 
         # Remove unreferenced objects
         expect(filtered.stops["stop_id"].to_a).to eq(%w[S1 S2 S3])

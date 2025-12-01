@@ -36,7 +36,10 @@ module GtfsDf
       booking_rules
     ].freeze
 
-    attr_reader(*GTFS_FILES, :graph)
+    # We create a separate dataframe for parent_stations
+    GTFS_DATAFRAMES = GTFS_FILES + %w[parent_stations]
+
+    attr_reader(*GTFS_DATAFRAMES, :graph)
 
     # Initialize with a hash of DataFrames
     REQUIRED_GTFS_FILES = %w[agency stops routes trips stop_times].freeze
@@ -55,7 +58,7 @@ module GtfsDf
 
       @graph = GtfsDf::Graph.build
 
-      GTFS_FILES.each do |file|
+      GTFS_DATAFRAMES.each do |file|
         df = data[file]
         schema_class_name = file.split("_").map(&:capitalize).join
         schema_class = begin
@@ -75,7 +78,7 @@ module GtfsDf
     def filter(view)
       filtered = {}
 
-      GTFS_FILES.each do |file|
+      GTFS_DATAFRAMES.each do |file|
         df = send(file)
         next unless df
 

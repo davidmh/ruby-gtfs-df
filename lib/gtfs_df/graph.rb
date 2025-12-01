@@ -30,6 +30,9 @@ module GtfsDf
         ["trips", "stop_times", {dependencies: [
           {"trips" => "trip_id", "stop_times" => "trip_id"}
         ]}],
+        ["stops", "parent_stations", {dependencies: [
+          {"stops" => "parent_station", "parent_stations" => "stop_id"}
+        ]}],
         ["stop_times", "stops", {dependencies: [
           {"stop_times" => "stop_id", "stops" => "stop_id"}
         ]}],

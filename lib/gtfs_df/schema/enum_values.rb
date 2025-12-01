@@ -82,13 +82,16 @@ module GtfsDf
 
       # stops.txt
       # location_type: Type of location
-      LOCATION_TYPE = [
+      STOP_LOCATION_TYPES = [
         ["0", "Stop or platform"],
-        ["1", "Station"],
         ["2", "Entrance/Exit"],
         ["3", "Generic Node"],
         ["4", "Boarding Area"]
       ]
+      STATION_LOCATION_TYPES = [
+        ["1", "Station"]
+      ]
+      LOCATION_TYPE = STOP_LOCATION_TYPES + STATION_LOCATION_TYPES
 
       # wheelchair_boarding: Indicates wheelchair boarding possibility
       WHEELCHAIR_BOARDING = [

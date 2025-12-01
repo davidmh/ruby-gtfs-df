@@ -47,6 +47,15 @@ RSpec.describe GtfsDf::Reader do
       expect(filtered.trips["service_id"].to_a.uniq).to eq(["FULLW"])
       expect(filtered.calendar["service_id"].to_a.uniq).to eq(["FULLW"])
     end
+
+    context "when there are parent_stations" do
+      let(:zip_path) { File.expand_path("../fixtures/oakland_station.zip", __dir__) }
+
+      it "correctly separates parent_stations and stops from stops.txt" do
+        expect(feed.stops["stop_id"].to_a.uniq).to eq(%w[947 948 958 969])
+        expect(feed.parent_stations["stop_id"].to_a.uniq).to eq(%w[station])
+      end
+    end
   end
 
   describe ".load_from_dir" do

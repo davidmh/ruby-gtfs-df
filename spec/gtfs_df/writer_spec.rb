@@ -70,6 +70,24 @@ RSpec.describe GtfsDf::Writer do
     end
   end
 
+  describe "stops and parent_stations" do
+    let(:station_zip) { File.expand_path("../fixtures/oakland_station.zip", __dir__) }
+
+    it "recombines stops and parent_stations when writing" do
+      original_feed = GtfsDf::Reader.load_from_zip(station_zip)
+      # Sanity check that we have stations
+      expect(original_feed.parent_stations.height).to be(1)
+      expect(original_feed.stops.height).to be(4)
+
+      GtfsDf::Writer.write_to_zip(original_feed, output_zip)
+      reloaded_feed = GtfsDf::Reader.load_from_zip(output_zip)
+
+      # Compare key DataFrames
+      expect(reloaded_feed.parent_stations.height).to eq(original_feed.parent_stations.height)
+      expect(reloaded_feed.stops.height).to eq(original_feed.stops.height)
+    end
+  end
+
   describe "error handling" do
     let(:readonly_dir_zip) { "/System/readonly_test.zip" }
 

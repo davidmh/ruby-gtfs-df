@@ -12,6 +12,11 @@ module GtfsDf
           df = feed.send(file)
           next unless df.is_a?(Polars::DataFrame)
 
+          # We separate out parent_stations upon reading, now reconsolidate them when writing
+          if file == "stops" && feed.send(:parent_stations).is_a?(Polars::DataFrame)
+            df = Polars.concat([df, feed.send(:parent_stations)])
+          end
+
           # Write CSV to StringIO
           csv_io = StringIO.new
           df.write_csv(csv_io)
