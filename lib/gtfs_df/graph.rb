@@ -4,7 +4,7 @@ module GtfsDf
   class Graph
     # Returns a directed graph of GTFS file dependencies
     def self.build
-      g = NetworkX::DiGraph.new
+      g = NetworkX::Graph.new
       # Nodes: GTFS files
       files = %w[
         agency routes trips stop_times stops calendar calendar_dates shapes transfers frequencies fare_attributes fare_rules
@@ -12,7 +12,7 @@ module GtfsDf
       ]
       files.each { |f| g.add_node(f) }
 
-      # Edges: dependencies
+      # TODO: Add fare_rules -> stops + test
       edges = [
         ["agency", "routes", {dependencies: [
           {"agency" => "agency_id", "routes" => "agency_id"}
@@ -116,9 +116,6 @@ module GtfsDf
         ["booking_rules", "stop_times", {dependencies: [
           {"booking_rules" => "booking_rule_id", "stop_times" => "pickup_booking_rule_id"},
           {"booking_rules" => "booking_rule_id", "stop_times" => "drop_off_booking_rule_id"}
-        ]}],
-        ["stops", "booking_rules", {dependencies: [
-          {"stops" => "stop_id", "booking_rules" => "stop_id"}
         ]}]
       ]
 
