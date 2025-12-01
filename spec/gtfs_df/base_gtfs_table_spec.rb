@@ -17,5 +17,14 @@ RSpec.describe GtfsDf::BaseGtfsTable do
       # Cast all extra columns as strings
       expect(schema.df["num_col"].dtype).to eq(Polars::String)
     end
+
+    it "can parse the literal empty string \"\" as a null value" do
+      stop_times_path =
+        File.expand_path("../fixtures/stop_times_with_empty_string_enum.txt", __dir__)
+
+      schema = GtfsDf::Schema::StopTimes.new(stop_times_path)
+      expect(schema.valid?).to be(true)
+      expect(schema.df["timepoint"].to_a).to eq([nil])
+    end
   end
 end
