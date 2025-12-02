@@ -106,7 +106,7 @@ RSpec.describe GtfsDf::Feed do
                                 "stop_lat" => %w[0 1 2 3 0 0],
                                 "stop_lon" => %w[0 1 2 3 0 0],
                                 "parent_station" => ["S5", nil, nil, "S6", nil, nil],
-                                "location_type" => %w[0 0 0 0 1 1]})
+                                "location_type" => ["0", nil, "0", "0", "1", "1"]})
       end
       # Trip 1 visits stops 1,2,3
       # Trip 2 visits stops 2,4

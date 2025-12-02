@@ -19,7 +19,9 @@ module GtfsDf
         file: "stops",
         filter_attrs: {
           filter_col: "location_type",
-          filter_vals: Schema::EnumValues::STOP_LOCATION_TYPES.map(&:first)
+          filter: Polars.col("location_type").is_in(
+            Schema::EnumValues::STOP_LOCATION_TYPES.map(&:first)
+          ) | Polars.col("location_type").is_null
         }
       },
       "parent_stations" => {
@@ -27,7 +29,9 @@ module GtfsDf
         file: "stops",
         filter_attrs: {
           filter_col: "location_type",
-          filter_vals: Schema::EnumValues::STATION_LOCATION_TYPES.map(&:first)
+          filter: Polars.col("location_type").is_in(
+            Schema::EnumValues::STATION_LOCATION_TYPES.map(&:first)
+          ) & Polars.col("location_type").is_not_null
         }
       }
     }.freeze

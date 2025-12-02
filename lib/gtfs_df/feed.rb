@@ -147,7 +147,7 @@ module GtfsDf
         # a piece of the dataframe
         filter_attrs = child_node[:filter_attrs]
         if filter_attrs && child_df.columns.include?(filter_attrs.fetch(:filter_col))
-          filter = Polars.col(filter_attrs.fetch(:filter_col)).is_in(filter_attrs.fetch(:filter_vals))
+          filter = filter_attrs.fetch(:filter)
           saved_vals = child_df.filter(filter.is_not)
           child_df = child_df.filter(filter)
         end
