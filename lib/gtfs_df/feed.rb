@@ -136,18 +136,28 @@ module GtfsDf
     end
 
     def prune!(root, filtered)
-      graph.each_bfs_edge(root) do |parent_file, child_file|
-        parent_df = filtered[parent_file]
+      graph.each_bfs_edge(root) do |parent_node_id, child_node_id|
+        parent_node = Graph::NODES[parent_node_id]
+        child_node = Graph::NODES[child_node_id]
+        parent_df = filtered[parent_node.fetch(:file)]
         next unless parent_df
 
-        child_df = filtered[child_file]
+        child_df = filtered[child_node.fetch(:file)]
+        # Certain nodes are pre-filtered because they reference only
+        # a piece of the dataframe
+        filter_attrs = child_node[:filter_attrs]
+        if filter_attrs && child_df.columns.include?(filter_attrs.fetch(:filter_col))
+          filter = Polars.col(filter_attrs.fetch(:filter_col)).is_in(filter_attrs.fetch(:filter_vals))
+          saved_vals = child_df.filter(filter.is_not)
+          child_df = child_df.filter(filter)
+        end
         next unless child_df && child_df.height > 0
 
-        attrs = graph.get_edge_data(parent_file, child_file)
+        attrs = graph.get_edge_data(parent_node_id, child_node_id)
 
         attrs[:dependencies].each do |dep|
-          parent_col = dep[parent_file]
-          child_col = dep[child_file]
+          parent_col = dep[parent_node_id]
+          child_col = dep[child_node_id]
 
           next unless parent_col && child_col &&
             parent_df.columns.include?(parent_col) && child_df.columns.include?(child_col)
@@ -157,13 +167,25 @@ module GtfsDf
 
           # Filter child to only include rows that reference valid parent values
           before = child_df.height
-          child_df = child_df.filter(Polars.col(child_col).is_in(valid_values))
+          child_df = child_df.filter(
+            Polars.col(child_col).is_in(valid_values)
+          )
+          changed = child_df.height < before
 
-          if child_df.height < before
-            filtered[child_file] = child_df
+          # If we removed a part of the child_df earlier, concat it back on
+          if saved_vals
+            child_df = Polars.concat([child_df, saved_vals], how: "vertical")
+          end
+
+          if changed
+            filtered[child_node.fetch(:file)] = child_df
           end
         end
       end
+    end
+
+    def edge_id(parent, child)
+      [parent, child].sort.join("-")
     end
   end
 end

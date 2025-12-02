@@ -98,11 +98,15 @@ RSpec.describe GtfsDf::Feed do
                                 "agency_id" => %w[A B],
                                 "route_short_name" => %w[A B]})
       end
+      # S5 is the parent station for S1
+      # S6 is the parent station for S4
       let(:stops_df) do
-        Polars::DataFrame.new({"stop_id" => %w[S1 S2 S3 S4],
-                                "stop_name" => %w[Stop1 Stop2 Stop3 Stop4],
-                                "stop_lat" => %w[0 1 2 3],
-                                "stop_lon" => %w[0 1 2 3]})
+        Polars::DataFrame.new({"stop_id" => %w[S1 S2 S3 S4 S5 S6],
+                                "stop_name" => %w[Stop1 Stop2 Stop3 Stop4 Station1 Station2],
+                                "stop_lat" => %w[0 1 2 3 0 0],
+                                "stop_lon" => %w[0 1 2 3 0 0],
+                                "parent_station" => ["S5", nil, nil, "S6", nil, nil],
+                                "location_type" => %w[0 0 0 0 1 1]})
       end
       # Trip 1 visits stops 1,2,3
       # Trip 2 visits stops 2,4
@@ -121,7 +125,7 @@ RSpec.describe GtfsDf::Feed do
         expect(filtered.stop_times["stop_id"].to_a).to eq(%w[S1 S2 S3])
 
         # Remove unreferenced objects
-        expect(filtered.stops["stop_id"].to_a).to eq(%w[S1 S2 S3])
+        expect(filtered.stops["stop_id"].to_a).to match_array(%w[S1 S2 S3 S5])
         expect(filtered.routes["route_id"].to_a).to eq(%w[1])
         expect(filtered.agency["agency_id"].to_a).to eq(%w[A])
         expect(filtered.calendar["service_id"].to_a).to eq(%w[A])
@@ -139,7 +143,7 @@ RSpec.describe GtfsDf::Feed do
         expect(filtered.stop_times["stop_id"].to_a).to eq(%w[S1 S2 S3])
 
         # Retain all stops referenced by T1 T1
-        expect(filtered.stops["stop_id"].to_a).to eq(%w[S1 S2 S3])
+        expect(filtered.stops["stop_id"].to_a).to match_array(%w[S1 S2 S3 S5])
         expect(filtered.routes["route_id"].to_a).to eq(%w[1])
         expect(filtered.agency["agency_id"].to_a).to eq(%w[A])
         expect(filtered.calendar["service_id"].to_a).to eq(%w[A])
@@ -157,7 +161,7 @@ RSpec.describe GtfsDf::Feed do
         expect(filtered.stop_times["stop_id"].to_a).to eq(%w[S1 S2 S3])
 
         # Remove unreferenced objects
-        expect(filtered.stops["stop_id"].to_a).to eq(%w[S1 S2 S3])
+        expect(filtered.stops["stop_id"].to_a).to match_array(%w[S1 S2 S3 S5])
         expect(filtered.calendar["service_id"].to_a).to eq(%w[A])
       end
 
@@ -173,9 +177,27 @@ RSpec.describe GtfsDf::Feed do
         expect(filtered.stop_times["stop_id"].to_a).to eq(%w[S1 S2 S3])
 
         # Remove unreferenced objects
-        expect(filtered.stops["stop_id"].to_a).to eq(%w[S1 S2 S3])
+        expect(filtered.stops["stop_id"].to_a).to match_array(%w[S1 S2 S3 S5])
         expect(filtered.routes["route_id"].to_a).to eq(%w[1])
         expect(filtered.agency["agency_id"].to_a).to eq(%w[A])
+      end
+
+      # TODO: this expected behavior is not yet supported
+      xit "filtering from a parent station cascades" do
+        # This stop is the station for trip 1. However, since we enter the graph
+        # through the stop node, we search for a stop_time with this stop and find
+        # nothing.
+        view = {"stops" => {"stop_id" => %w[S5]}}
+        filtered = feed.filter(view)
+
+        # Retain all stop times for T1 but not T2
+        expect(filtered.stop_times["stop_id"].to_a).to eq(%w[S1 S2 S3])
+
+        # Retain all stops referenced by T1 T1
+        expect(filtered.stops["stop_id"].to_a).to match_array(%w[S1 S2 S3 S5])
+        expect(filtered.routes["route_id"].to_a).to eq(%w[1])
+        expect(filtered.agency["agency_id"].to_a).to eq(%w[A])
+        expect(filtered.calendar["service_id"].to_a).to eq(%w[A])
       end
     end
 
