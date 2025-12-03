@@ -38,7 +38,8 @@ RSpec.describe GtfsDf::Graph do
                                                                                       "agency" => "agency_id"}])
 
       expect(graph.get_edge_data("fare_rules", "routes")[:dependencies]).to eq([{"fare_rules" => "route_id",
-                                                                                 "routes" => "route_id"}])
+                                                                                 "routes" => "route_id",
+                                                                                 :allow_null => true}])
 
       expect(graph.get_edge_data("stops", "transfers")[:dependencies]).to eq([{"stops" => "stop_id",
                                                                                "transfers" => "from_stop_id"},

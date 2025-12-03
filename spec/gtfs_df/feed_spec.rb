@@ -40,16 +40,17 @@ RSpec.describe GtfsDf::Feed do
                             "start_date" => %w[20250101 20250101],
                             "end_date" => %w[20251231 20251231]})
   end
-  let(:feed) do
-    described_class.new(
+  let(:feed_dfs) do
+    {
       "agency" => agency_df,
       "stops" => stops_df,
       "routes" => routes_df,
       "trips" => trips_df,
       "stop_times" => stop_times_df,
       "calendar" => calendar_df
-    )
+    }
   end
+  let(:feed) { described_class.new(feed_dfs) }
 
   describe ".new" do
     it "sets GTFS file properties as DataFrames" do
@@ -199,6 +200,37 @@ RSpec.describe GtfsDf::Feed do
           expect(filtered.routes["route_id"].to_a).to eq(%w[1])
           expect(filtered.agency["agency_id"].to_a).to eq(%w[A])
           expect(filtered.calendar["service_id"].to_a).to eq(%w[A])
+        end
+
+        it "keeps fare_rules with null route_id" do
+          fare_attributes_df = Polars::DataFrame.new({
+            "fare_id" => %w[F1 F2 F3],
+            "price" => [1.0, 1.0, 1.0],
+            "currency_type" => %w[USD USD USD],
+            "payment_method" => %w[0 0 0],
+            "transfers" => %w[0 0 0]
+          })
+          fare_rules_df = Polars::DataFrame.new({
+            "fare_id" => %w[F1 F2 F3],
+            "route_id" => ["1", "2", nil]
+          })
+
+          feed = described_class.new(
+            feed_dfs.merge({
+              "fare_attributes" => fare_attributes_df,
+              "fare_rules" => fare_rules_df
+            })
+          )
+
+          view = {"trips" => {"trip_id" => %w[t1]}}
+          filtered = feed.filter(view)
+
+          # Sanity check routes
+          expect(filtered.routes["route_id"].to_a).to match_array(%w[1])
+          expect(filtered.fare_attributes["fare_id"].to_a).to match_array(%w[F1 F2 F3])
+          # F2 belongs to a removed route so it is filtered out. F3 is associated
+          # with no route so it does not.
+          expect(filtered.fare_rules["fare_id"].to_a).to match_array(%w[F1 F3])
         end
       end
 

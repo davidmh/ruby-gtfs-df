@@ -59,7 +59,7 @@ module GtfsDf
            "fare_rules" => "fare_id"}
         ]}],
         ["fare_rules", "routes", {dependencies: [
-          {"fare_rules" => "route_id", "routes" => "route_id"}
+          {"fare_rules" => "route_id", "routes" => "route_id", :allow_null => true}
         ]}],
         ["routes", "trips", {dependencies: [
           {"routes" => "route_id", "trips" => "route_id"}

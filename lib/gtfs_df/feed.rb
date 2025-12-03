@@ -176,6 +176,7 @@ module GtfsDf
         attrs[:dependencies].each do |dep|
           parent_col = dep[parent_node_id]
           child_col = dep[child_node_id]
+          allow_null = !!dep[:allow_null]
 
           next unless parent_col && child_col &&
             parent_df.columns.include?(parent_col) && child_df.columns.include?(child_col)
@@ -185,9 +186,11 @@ module GtfsDf
 
           # Filter child to only include rows that reference valid parent values
           before = child_df.height
-          child_df = child_df.filter(
-            Polars.col(child_col).is_in(valid_values)
-          )
+          filter = Polars.col(child_col).is_in(valid_values)
+          if allow_null
+            filter = (filter | Polars.col(child_col).is_null)
+          end
+          child_df = child_df.filter(filter)
           changed = child_df.height < before
 
           # If we removed a part of the child_df earlier, concat it back on
