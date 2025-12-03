@@ -86,11 +86,25 @@ After checking out the repo, run `bin/setup` to install dependencies. Then, run 
 
 To install this gem onto your local machine, run `bundle exec rake install`. To release a new version, update the version number in `version.rb`, and then run `bundle exec rake release`, which will create a git tag for the version, push git commits and the created tag, and push the `.gem` file to [rubygems.org](https://rubygems.org).
 
+## Release process
+
+1. `bin/bump-version`
+
+- Bump the version in `lib/gtfs_df/version.rb`
+- Update the `CHANGELOG.md` using the git log since the last version
+- Create and push a new release branch with those changes
+- Create a PR for that release
+
+2. `bin/create-tag`
+
+Creates and pushes the git tag for the release. That will trigger the GitHub action: `.github/workflows/publish.yml` to publish to RubyGems.
+
 ## TODO
 
 - [ ] Time parsing
-    Just like partridge, we should parse Time as seconds since midnight. There's a draft in `lib/gtfs_df/utils.rb` but it's not used anywhere.
-    I haven't figured out how to properly implement with Polars.
+
+  Just like partridge, we should parse Time as seconds since midnight. There's a draft in `lib/gtfs_df/utils.rb` but it's not used anywhere.
+  I haven't figured out how to properly implement that with Polars.
 
 ## Contributing
 
