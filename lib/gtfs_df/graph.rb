@@ -2,15 +2,48 @@
 
 module GtfsDf
   class Graph
+    FILES = %w[
+      agency routes trips stop_times calendar calendar_dates shapes transfers frequencies fare_attributes fare_rules
+      fare_leg_join_rules fare_transfer_rules areas networks route_networks location_groups location_group_stops booking_rules
+      stop_areas fare_leg_rules
+    ]
+
+    STANDARD_FILE_NODES = FILES.map do |file|
+      [file, {id: file, file: file, filter: nil}]
+    end.to_h.freeze
+
+    # Separate node definitions for stops and parent stations to handle the self-referential
+    # relationship in stops.txt where stops reference parent stations via parent_station column.
+    # This allows filtering to preserve parent stations when their child stops are referenced.
+    STOP_NODES = {
+      "stops" => {
+        id: "stops",
+        file: "stops",
+        filter_attrs: {
+          filter_col: "location_type",
+          filter: Polars.col("location_type").is_in(
+            Schema::EnumValues::STOP_LOCATION_TYPES.map(&:first)
+          ) | Polars.col("location_type").is_null
+        }
+      },
+      "parent_stations" => {
+        id: "parent_stations",
+        file: "stops",
+        filter_attrs: {
+          filter_col: "location_type",
+          filter: Polars.col("location_type").is_in(
+            Schema::EnumValues::STATION_LOCATION_TYPES.map(&:first)
+          ) & Polars.col("location_type").is_not_null
+        }
+      }
+    }.freeze
+
+    NODES = STANDARD_FILE_NODES.merge(STOP_NODES).freeze
+
     # Returns a directed graph of GTFS file dependencies
     def self.build
       g = NetworkX::Graph.new
-      # Nodes: GTFS files
-      files = %w[
-        agency routes trips stop_times stops calendar calendar_dates shapes transfers frequencies fare_attributes fare_rules
-        fare_leg_join_rules fare_transfer_rules areas networks route_networks location_groups location_group_stops booking_rules
-      ]
-      files.each { |f| g.add_node(f) }
+      NODES.keys.each { |node| g.add_node(node) }
 
       # TODO: Add fare_rules -> stops + test
       edges = [
@@ -32,6 +65,10 @@ module GtfsDf
         ]}],
         ["stop_times", "stops", {dependencies: [
           {"stop_times" => "stop_id", "stops" => "stop_id"}
+        ]}],
+        # Self-referential edge: stops can reference parent stations (location_type=1)
+        ["stops", "parent_stations", {dependencies: [
+          {"stops" => "parent_station", "parent_stations" => "stop_id"}
         ]}],
         ["stops", "transfers", {dependencies: [
           {"stops" => "stop_id", "transfers" => "from_stop_id"},

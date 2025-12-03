@@ -4,24 +4,21 @@ module GtfsDf
   class Reader
     # Loads a GTFS zip file and returns a Feed
     def self.load_from_zip(zip_path)
-      data = {}
+      data = nil
+
       Dir.mktmpdir do |tmpdir|
         Zip::File.open(zip_path) do |zip_file|
           zip_file.each do |entry|
             next unless entry.file?
-
-            GtfsDf::Feed::GTFS_FILES.each do |gtfs_file|
-              next unless entry.name == "#{gtfs_file}.txt"
-
-              out_path = File.join(tmpdir, entry.name)
-              entry.extract(out_path)
-
-              data[gtfs_file] = data_frame(gtfs_file, out_path)
-            end
+            out_path = File.join(tmpdir, entry.name)
+            entry.extract(out_path)
           end
         end
+
+        data = load_from_dir(tmpdir)
       end
-      GtfsDf::Feed.new(data)
+
+      data
     end
 
     # Loads a GTFS dir and returns a Feed
