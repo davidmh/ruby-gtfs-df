@@ -135,6 +135,8 @@ module GtfsDf
       filtered
     end
 
+    # Traverses the grah to prune unreferenced entities from child dataframes
+    # based on parent relationships. See GtfsDf::Graph::STOP_NODES
     def prune!(root, filtered)
       graph.each_bfs_edge(root) do |parent_node_id, child_node_id|
         parent_node = Graph::NODES[parent_node_id]
@@ -148,6 +150,9 @@ module GtfsDf
         filter_attrs = child_node[:filter_attrs]
         if filter_attrs && child_df.columns.include?(filter_attrs.fetch(:filter_col))
           filter = filter_attrs.fetch(:filter)
+          # Temporarily remove rows that do not match node filter criteria to process them
+          # separately (e.g., when filtering stops, parent stations that should be preserved
+          # regardless of direct references)
           saved_vals = child_df.filter(filter.is_not)
           child_df = child_df.filter(filter)
         end
@@ -182,10 +187,6 @@ module GtfsDf
           end
         end
       end
-    end
-
-    def edge_id(parent, child)
-      [parent, child].sort.join("-")
     end
   end
 end

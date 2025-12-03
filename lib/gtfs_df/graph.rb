@@ -12,7 +12,9 @@ module GtfsDf
       [file, {id: file, file: file, filter: nil}]
     end.to_h.freeze
 
-    # Used for a self-loop stop -> stop
+    # Separate node definitions for stops and parent stations to handle the self-referential
+    # relationship in stops.txt where stops reference parent stations via parent_station column.
+    # This allows filtering to preserve parent stations when their child stops are referenced.
     STOP_NODES = {
       "stops" => {
         id: "stops",
@@ -64,6 +66,7 @@ module GtfsDf
         ["stop_times", "stops", {dependencies: [
           {"stop_times" => "stop_id", "stops" => "stop_id"}
         ]}],
+        # Self-referential edge: stops can reference parent stations (location_type=1)
         ["stops", "parent_stations", {dependencies: [
           {"stops" => "parent_station", "parent_stations" => "stop_id"}
         ]}],
