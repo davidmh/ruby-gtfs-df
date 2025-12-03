@@ -9,7 +9,7 @@ module GtfsDf
         "stop_name" => Polars::String,
         "tts_stop_name" => Polars::String,
         "stop_desc" => Polars::String,
-        "stop_lat" => Polars::String,
+        "stop_lat" => Polars::Float64,
         "stop_lon" => Polars::Float64,
         "zone_id" => Polars::String,
         "stop_url" => Polars::String,
