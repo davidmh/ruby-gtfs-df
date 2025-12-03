@@ -1,0 +1,21 @@
+#!/usr/bin/env bash
+
+set -eou pipefail
+
+# Create a git tag for a new gem version.
+#
+# This script assumes the version file has already been updated and merged
+# into the main branch. See the bump-version script for details on how the
+# version file gets updated.
+
+VERSION=$(ruby -e 'require_relative "lib/gtfs_df/version"; puts GtfsDf::VERSION')
+
+TAG_NAME="v$VERSION"
+
+if ! git tag -l | grep -q "$TAG_NAME"; then
+  git tag "$TAG_NAME"
+  git push origin "$TAG_NAME"
+else
+  echo "Exiting early, there's already a tag for $TAG_NAME"
+  exit 1
+fi
