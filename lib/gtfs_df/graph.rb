@@ -50,6 +50,10 @@ module GtfsDf
         ["agency", "routes", {dependencies: [
           {"agency" => "agency_id", "routes" => "agency_id"}
         ]}],
+        ["fare_attributes", "agency", {dependencies: [
+          {"fare_attributes" => "agency_id",
+           "agency" => "agency_id"}
+        ]}],
         ["fare_attributes", "fare_rules", {dependencies: [
           {"fare_attributes" => "fare_id",
            "fare_rules" => "fare_id"}
