@@ -50,12 +50,16 @@ module GtfsDf
         ["agency", "routes", {dependencies: [
           {"agency" => "agency_id", "routes" => "agency_id"}
         ]}],
+        ["fare_attributes", "agency", {dependencies: [
+          {"fare_attributes" => "agency_id",
+           "agency" => "agency_id"}
+        ]}],
         ["fare_attributes", "fare_rules", {dependencies: [
           {"fare_attributes" => "fare_id",
            "fare_rules" => "fare_id"}
         ]}],
         ["fare_rules", "routes", {dependencies: [
-          {"fare_rules" => "route_id", "routes" => "route_id"}
+          {"fare_rules" => "route_id", "routes" => "route_id", :allow_null => true}
         ]}],
         ["routes", "trips", {dependencies: [
           {"routes" => "route_id", "trips" => "route_id"}

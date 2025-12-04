@@ -36,7 +36,8 @@ module GtfsDf
       booking_rules
     ].freeze
 
-    attr_reader(*GTFS_FILES, :graph)
+    attr_accessor(*GTFS_FILES)
+    attr_reader(:graph)
 
     # Initialize with a hash of DataFrames
     REQUIRED_GTFS_FILES = %w[agency stops routes trips stop_times].freeze
@@ -71,8 +72,16 @@ module GtfsDf
     end
 
     # Filter the feed using a view hash
-    # Example view: { 'routes' => { 'route_id' => '123' }, 'trips' => { 'service_id' => 'A' } }
-    def filter(view)
+    #
+    # @param view [Hash] The view used to filter the feed, with format { file => filters }.
+    #   Example view: { 'routes' => { 'route_id' => '123' }, 'trips' => { 'service_id' => 'A' } }
+    # @param maintain_trip_dependencies [Boolean] Whether trip dependencies should be preserved.
+    #   By default, we treat trips as the atomic unit of GTFS. Therefore, if we filter to one stop
+    #   referenced by TripA, we will preserve _all stops_ referenced by TripA. However, it is
+    #   occasionally useful to prune bad data and _not_ maintain all trip dependencies.
+    #   For example, if StopA contains invalid coordinates, we may wish to filter it out but keep
+    #   the other stops for TripA. In this case, `maintain_trip_dependencies` should be set to false.
+    def filter(view, maintain_trip_dependencies = true)
       filtered = {}
 
       GTFS_FILES.each do |file|
@@ -82,22 +91,28 @@ module GtfsDf
         filtered[file] = df
       end
 
-      # Trips are the atomic unit of GTFS, we will generate a new view
-      # based on the set of trips that would be included for each invidual filter
-      # and cascade changes from this view in order to retain referential integrity
-      trip_ids = nil
+      if maintain_trip_dependencies
+        # Trips are the atomic unit of GTFS, we will generate a new view
+        # based on the set of trips that would be included for each invidual filter
+        # and cascade changes from this view in order to retain referential integrity
+        trip_ids = nil
 
-      view.each do |file, filters|
-        new_filtered = filter!(file, filters, filtered.dup)
-        trip_ids = if trip_ids.nil?
-          new_filtered["trips"]["trip_id"]
-        else
-          trip_ids & new_filtered["trips"]["trip_id"]
+        view.each do |file, filters|
+          new_filtered = filter!(file, filters, filtered.dup)
+          trip_ids = if trip_ids.nil?
+            new_filtered["trips"]["trip_id"]
+          else
+            trip_ids & new_filtered["trips"]["trip_id"]
+          end
         end
-      end
 
-      if trip_ids
-        filtered = filter!("trips", {"trip_id" => trip_ids.to_a}, filtered)
+        if trip_ids
+          filtered = filter!("trips", {"trip_id" => trip_ids.to_a}, filtered)
+        end
+      else
+        view.each do |file, filters|
+          filtered = filter!(file, filters, filtered.dup)
+        end
       end
 
       # Remove files that are empty, but keep required files even if empty
@@ -163,6 +178,7 @@ module GtfsDf
         attrs[:dependencies].each do |dep|
           parent_col = dep[parent_node_id]
           child_col = dep[child_node_id]
+          allow_null = !!dep[:allow_null]
 
           next unless parent_col && child_col &&
             parent_df.columns.include?(parent_col) && child_df.columns.include?(child_col)
@@ -172,9 +188,11 @@ module GtfsDf
 
           # Filter child to only include rows that reference valid parent values
           before = child_df.height
-          child_df = child_df.filter(
-            Polars.col(child_col).is_in(valid_values)
-          )
+          filter = Polars.col(child_col).is_in(valid_values)
+          if allow_null
+            filter = (filter | Polars.col(child_col).is_null)
+          end
+          child_df = child_df.filter(filter)
           changed = child_df.height < before
 
           # If we removed a part of the child_df earlier, concat it back on
