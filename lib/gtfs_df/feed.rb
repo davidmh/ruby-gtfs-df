@@ -36,7 +36,8 @@ module GtfsDf
       booking_rules
     ].freeze
 
-    attr_reader(*GTFS_FILES, :graph)
+    attr_accessor(*GTFS_FILES)
+    attr_reader(:graph)
 
     # Initialize with a hash of DataFrames
     REQUIRED_GTFS_FILES = %w[agency stops routes trips stop_times].freeze
