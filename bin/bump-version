@@ -85,6 +85,13 @@ update_version_file() {
     sed -i "s/VERSION = \"$old_version\"/VERSION = \"$new_version\"/" "$VERSION_FILE"
 }
 
+update_lock_file() {
+  echo ""
+  echo "🔓 Updating lock file"
+
+  bundle install
+}
+
 generate_changelog_entry() {
     local version="$1"
     local last_tag
@@ -195,7 +202,7 @@ commit_changes() {
     local version="$1"
     echo ""
     echo "💾 Committing changes..."
-    git add "$VERSION_FILE" "$CHANGELOG_FILE"
+    git add "$VERSION_FILE" "$CHANGELOG_FILE" Gemfile.lock
     git commit -m "chore: bump version to $version"
 }
 
@@ -279,6 +286,8 @@ main() {
 
     create_branch "$branch_name"
     update_version_file "$current_version" "$new_version"
+
+    update_lock_file
 
     local changelog_entry
     changelog_entry=$(generate_changelog_entry "$new_version")
