@@ -72,14 +72,15 @@ module GtfsDf
     end
 
     # Filter the feed using a view hash
-    # Example view: { 'routes' => { 'route_id' => '123' }, 'trips' => { 'service_id' => 'A' } }
     #
-    # By default, we treat trips as the atomic unit of GTFS. Therefore, if we filter to one stop
-    # referenced by TripA, we will preserve _all stops_ referenced by TripA.
-    # However, it is occasionally useful to prune bad data and _not_ maintain all trip
-    # dependencies. For example, if StopA contains invalid coordinates, we may wish to filter it
-    # out but keep the other stops for TripA. In this case, maintain_trip_dependencies should
-    # be set to false.
+    # @param view [Hash] The view used to filter the feed, with format { file => filters }.
+    #   Example view: { 'routes' => { 'route_id' => '123' }, 'trips' => { 'service_id' => 'A' } }
+    # @param maintain_trip_dependencies [Boolean] Whether trip dependencies should be preserved.
+    #   By default, we treat trips as the atomic unit of GTFS. Therefore, if we filter to one stop
+    #   referenced by TripA, we will preserve _all stops_ referenced by TripA. However, it is
+    #   occasionally useful to prune bad data and _not_ maintain all trip dependencies.
+    #   For example, if StopA contains invalid coordinates, we may wish to filter it out but keep
+    #   the other stops for TripA. In this case, `maintain_trip_dependencies` should be set to false.
     def filter(view, maintain_trip_dependencies = true)
       filtered = {}
 
