@@ -1,4 +1,19 @@
-## [Unreleased]
+## [0.4.0] - 2025-12-04
+
+### Added
+
+- allow setting maintain_trip_dependencies=false
+
+### Fixed
+
+- parse stop_lat as float
+- add missing agency -> fare_attributes edge
+- allow null for fare_rules
+
+### Maintenance
+
+- provide accessor for gtfs_files (utility)
+- add yard docs
 
 ## [0.3.0] - 2025-12-04
 
