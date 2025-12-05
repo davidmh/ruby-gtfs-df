@@ -15,15 +15,6 @@ module GtfsDf
           default_schema = all_columns.map { |c| [c, Polars::String] }.to_h
           dtypes = default_schema.merge(self.class::SCHEMA)
           Polars.read_csv(input, null_values: [""], dtypes:)
-        elsif input.is_a?(Array)
-          head, *body = input
-          df_input = body.each_with_object({}) do |row, acc|
-            head.each_with_index do |column, index|
-              acc[column] ||= []
-              acc[column] << row[index]
-            end
-          end
-          Polars::DataFrame.new(df_input, schema_overrides: self.class::SCHEMA, strict: false)
         else
           throw GtfsDf::Error, "Unrecognized input"
         end
