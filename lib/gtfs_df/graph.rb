@@ -42,7 +42,7 @@ module GtfsDf
 
     # Returns a directed graph of GTFS file dependencies
     def self.build
-      g = NetworkX::Graph.new
+      g = NetworkX::DiGraph.new
       NODES.keys.each { |node| g.add_node(node) }
 
       # Edges should be parent, child

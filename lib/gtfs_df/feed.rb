@@ -54,7 +54,7 @@ module GtfsDf
         end.join(", ")}"
       end
 
-      @graph = GtfsDf::Graph.build
+      @graph = GtfsDf::Graph.build.to_undirected
 
       GTFS_FILES.each do |file|
         df = data[file]
