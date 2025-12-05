@@ -1,3 +1,12 @@
+## [0.4.1] - 2025-12-05
+
+### Added
+
+- handle extra whitespace in csvs
+
+### Maintenance
+
+- remove unused initializer format
 ## [0.4.0] - 2025-12-04
 
 ### Added
