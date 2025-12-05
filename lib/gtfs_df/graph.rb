@@ -45,12 +45,13 @@ module GtfsDf
       g = NetworkX::Graph.new
       NODES.keys.each { |node| g.add_node(node) }
 
+      # Edges should be parent, child
       # TODO: Add fare_rules -> stops + test
       edges = [
         ["agency", "routes", {dependencies: [
           {"agency" => "agency_id", "routes" => "agency_id"}
         ]}],
-        ["fare_attributes", "agency", {dependencies: [
+        ["agency", "fare_attributes", {dependencies: [
           {"fare_attributes" => "agency_id",
            "agency" => "agency_id"}
         ]}],
@@ -58,7 +59,7 @@ module GtfsDf
           {"fare_attributes" => "fare_id",
            "fare_rules" => "fare_id"}
         ]}],
-        ["fare_rules", "routes", {dependencies: [
+        ["routes", "fare_rules", {dependencies: [
           {"fare_rules" => "route_id", "routes" => "route_id", :allow_null => true}
         ]}],
         ["routes", "trips", {dependencies: [
@@ -67,24 +68,24 @@ module GtfsDf
         ["trips", "stop_times", {dependencies: [
           {"trips" => "trip_id", "stop_times" => "trip_id"}
         ]}],
-        ["stop_times", "stops", {dependencies: [
+        ["stops", "stop_times", {dependencies: [
           {"stop_times" => "stop_id", "stops" => "stop_id"}
         ]}],
         # Self-referential edge: stops can reference parent stations (location_type=1)
-        ["stops", "parent_stations", {dependencies: [
+        ["parent_stations", "stops", {dependencies: [
           {"stops" => "parent_station", "parent_stations" => "stop_id"}
         ]}],
         ["stops", "transfers", {dependencies: [
           {"stops" => "stop_id", "transfers" => "from_stop_id"},
           {"stops" => "stop_id", "transfers" => "to_stop_id"}
         ]}],
-        ["trips", "calendar", {dependencies: [
+        ["calendar", "trips", {dependencies: [
           {"trips" => "service_id", "calendar" => "service_id"}
         ]}],
-        ["trips", "calendar_dates", {dependencies: [
+        ["calendar_dates", "trips", {dependencies: [
           {"trips" => "service_id", "calendar_dates" => "service_id"}
         ]}],
-        ["trips", "shapes", {dependencies: [
+        ["shapes", "trips", {dependencies: [
           {"trips" => "shape_id", "shapes" => "shape_id"}
         ]}],
         ["trips", "frequencies", {dependencies: [
@@ -97,11 +98,11 @@ module GtfsDf
             {"stops" => "stop_id", "fare_leg_join_rules" => "from_stop_id"},
             {"stops" => "stop_id", "fare_leg_join_rules" => "to_stop_id"}
           ]}],
-        ["fare_leg_join_rules", "networks", {dependencies: [
+        ["networks", "fare_leg_join_rules", {dependencies: [
           {"fare_leg_join_rules" => "from_network_id", "networks" => "network_id"},
           {"fare_leg_join_rules" => "to_network_id", "networks" => "network_id"}
         ]}],
-        ["fare_leg_join_rules", "fare_leg_rules",
+        ["fare_leg_rules", "fare_leg_join_rules",
           {dependencies: [
             {"fare_leg_join_rules" => "fare_leg_rule_id", "fare_leg_rules" => "fare_leg_rule_id"}
           ]}],
@@ -110,14 +111,14 @@ module GtfsDf
             {"fare_transfer_rules" => "from_leg_group_id", "fare_leg_rules" => "leg_group_id"},
             {"fare_transfer_rules" => "to_leg_group_id", "fare_leg_rules" => "leg_group_id"}
           ]}],
-        ["fare_transfer_rules", "fare_products",
+        ["fare_products", "fare_transfer_rules",
           {dependencies: [
             {"fare_transfer_rules" => "fare_product_id", "fare_products" => "fare_product_id"}
           ]}],
         ["areas", "stop_areas", {dependencies: [
           {"areas" => "area_id", "stop_areas" => "area_id"}
         ]}],
-        ["stops", "areas", {dependencies: [
+        ["areas", "stops", {dependencies: [
           {"stops" => "area_id", "areas" => "area_id"}
         ]}],
         ["areas", "fare_leg_rules", {dependencies: [
@@ -133,10 +134,10 @@ module GtfsDf
         ["networks", "fare_leg_rules", {dependencies: [
           {"networks" => "network_id", "fare_leg_rules" => "network_id"}
         ]}],
-        ["route_networks", "routes", {dependencies: [
+        ["routes", "route_networks", {dependencies: [
           {"route_networks" => "route_id", "routes" => "route_id"}
         ]}],
-        ["route_networks", "networks", {dependencies: [
+        ["networks", "route_networks", {dependencies: [
           {"route_networks" => "network_id", "networks" => "network_id"}
         ]}],
         ["location_groups", "location_group_stops", {dependencies: [
@@ -145,13 +146,13 @@ module GtfsDf
         ["location_groups", "stops", {dependencies: [
           {"location_groups" => "location_group_id", "stops" => "location_group_id"}
         ]}],
-        ["location_group_stops", "stops", {dependencies: [
+        ["stops", "location_group_stops", {dependencies: [
           {"location_group_stops" => "stop_id", "stops" => "stop_id"}
         ]}],
         ["stops", "location_group_stops", {dependencies: [
           {"stops" => "stop_id", "location_group_stops" => "stop_id"}
         ]}],
-        ["location_group_stops", "location_groups", {dependencies: [
+        ["location_groups", "location_group_stops", {dependencies: [
           {"location_group_stops" => "location_group_id", "location_groups" => "location_group_id"}
         ]}],
         ["booking_rules", "stop_times", {dependencies: [
