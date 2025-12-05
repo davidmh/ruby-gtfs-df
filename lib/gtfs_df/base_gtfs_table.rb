@@ -10,11 +10,21 @@ module GtfsDf
         if input.is_a?(Polars::DataFrame)
           input
         elsif input.is_a?(String)
-          # We need to account for extra columns due to: https://github.com/ankane/ruby-polars/issues/125
-          all_columns = Polars.scan_csv(input).columns
-          default_schema = all_columns.map { |c| [c, Polars::String] }.to_h
-          dtypes = default_schema.merge(self.class::SCHEMA)
-          Polars.read_csv(input, null_values: [""], dtypes:)
+          # TODO: use `infer_schema: false` instead of `infer_schema_length` after polars release:
+          # https://github.com/ankane/ruby-polars/blob/master/CHANGELOG.md#100-unreleased
+          df = Polars.read_csv(input, infer_schema_length: 0)
+          dtypes = self.class::SCHEMA.slice(*df.columns)
+
+          df
+            .with_columns(dtypes.keys.map do |col|
+              stripped = Polars.col(col).str.strip
+              Polars.when(stripped.str.len_chars.gt(0))
+                .then(stripped)
+                .otherwise(Polars.lit(nil))
+            end)
+            .with_columns(dtypes.map do |name, type|
+                            Polars.col(name).cast(type)
+                          end)
         else
           throw GtfsDf::Error, "Unrecognized input"
         end

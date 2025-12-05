@@ -26,5 +26,17 @@ RSpec.describe GtfsDf::BaseGtfsTable do
       expect(schema.valid?).to be(true)
       expect(schema.df["timepoint"].to_a).to eq([nil])
     end
+
+    it "strips extra whitespace when parsing" do
+      stop_times_path =
+        File.expand_path("../fixtures/stop_times_with_extra_whitespace.txt", __dir__)
+
+      schema = GtfsDf::Schema::StopTimes.new(stop_times_path)
+      expect(schema.valid?).to be(true)
+      expect(schema.df["trip_id"].to_a).to eq(["trip1"])
+      expect(schema.df["timepoint"].to_a).to eq([nil])
+      expect(schema.df["pickup_type"].to_a).to eq(["1"])
+      expect(schema.df["drop_off_type"].to_a).to eq([nil])
+    end
   end
 end
