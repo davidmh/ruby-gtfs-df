@@ -1,3 +1,14 @@
+## [0.5.0] - 2025-12-08
+
+### Added
+
+- add Feed#filter filter_only_children param
+
+### Maintenance
+
+- arrange edges so parent is always first
+- build directed graph
+- allow ! in commit messages
 ## [0.4.1] - 2025-12-05
 
 ### Added
