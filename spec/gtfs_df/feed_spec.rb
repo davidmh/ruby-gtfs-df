@@ -227,10 +227,13 @@ RSpec.describe GtfsDf::Feed do
 
           # Sanity check routes
           expect(filtered.routes["route_id"].to_a).to match_array(%w[1])
-          expect(filtered.fare_attributes["fare_id"].to_a).to match_array(%w[F1 F2 F3])
+
           # F2 belongs to a removed route so it is filtered out. F3 is associated
           # with no route so it does not.
           expect(filtered.fare_rules["fare_id"].to_a).to match_array(%w[F1 F3])
+
+          # Now we filter to the referenced fare attributes
+          expect(filtered.fare_attributes["fare_id"].to_a).to match_array(%w[F1 F3])
         end
       end
 
@@ -295,6 +298,39 @@ RSpec.describe GtfsDf::Feed do
           expect(filtered.stops["stop_id"].to_a).to match_array(%w[S1 S2 S3 S4 S5 S6])
           expect(filtered.routes["route_id"].to_a).to eq(%w[1 2])
           expect(filtered.agency["agency_id"].to_a).to eq(%w[A B])
+        end
+
+        it "keeps fare_rules with null route_id" do
+          fare_attributes_df = Polars::DataFrame.new({
+            "fare_id" => %w[F1 F2 F3],
+            "price" => [1.0, 1.0, 1.0],
+            "currency_type" => %w[USD USD USD],
+            "payment_method" => %w[0 0 0],
+            "transfers" => %w[0 0 0]
+          })
+          fare_rules_df = Polars::DataFrame.new({
+            "fare_id" => %w[F1 F2 F3],
+            "route_id" => ["1", "2", nil]
+          })
+
+          feed = described_class.new(
+            feed_dfs.merge({
+              "fare_attributes" => fare_attributes_df,
+              "fare_rules" => fare_rules_df
+            })
+          )
+
+          view = {"routes" => {"route_id" => %w[1]}}
+          filtered = feed.filter(view, filter_only_children: true)
+
+          expect(filtered.routes["route_id"].to_a).to match_array(%w[1])
+
+          # In this case, we keep all routes and fare_attributes
+          expect(filtered.fare_attributes["fare_id"].to_a).to match_array(%w[F1 F2 F3])
+
+          # F2 belongs to a removed route so it is filtered out. F3 is associated
+          # with no route so it does not.
+          expect(filtered.fare_rules["fare_id"].to_a).to match_array(%w[F1 F3])
         end
       end
     end
