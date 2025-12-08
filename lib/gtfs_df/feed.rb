@@ -75,13 +75,17 @@ module GtfsDf
     #
     # @param view [Hash] The view used to filter the feed, with format { file => filters }.
     #   Example view: { 'routes' => { 'route_id' => '123' }, 'trips' => { 'service_id' => 'A' } }
-    # @param maintain_trip_dependencies [Boolean] Whether trip dependencies should be preserved.
-    #   By default, we treat trips as the atomic unit of GTFS. Therefore, if we filter to one stop
-    #   referenced by TripA, we will preserve _all stops_ referenced by TripA. However, it is
-    #   occasionally useful to prune bad data and _not_ maintain all trip dependencies.
-    #   For example, if StopA contains invalid coordinates, we may wish to filter it out but keep
-    #   the other stops for TripA. In this case, `maintain_trip_dependencies` should be set to false.
-    def filter(view, maintain_trip_dependencies = true)
+    # @param filter_only_children [Boolean] Whether only child dependencies should be pruned.
+    #   When false, we:
+    #   - Treat trips as the atomic unit of GTFS. Therefore, if we filter to one stop
+    #     referenced by TripA, we will preserve _all stops_ referenced by TripA.
+    #   - Prune unreferenced parent objects (e.g. route is a parent of trip. Unreferenced routes
+    #     will be pruned.)
+    #   When true we:
+    #   - Do not treat trips as atomic. I can filter stopA without maintaining other stops for
+    #     trips that reference it.
+    #   - Only filter child objects
+    def filter(view, filter_only_children: false)
       filtered = {}
 
       GTFS_FILES.each do |file|
@@ -91,7 +95,11 @@ module GtfsDf
         filtered[file] = df
       end
 
-      if maintain_trip_dependencies
+      if filter_only_children
+        view.each do |file, filters|
+          filtered = filter!(file, filters, filtered.dup, filter_only_children: true)
+        end
+      else
         # Trips are the atomic unit of GTFS, we will generate a new view
         # based on the set of trips that would be included for each invidual filter
         # and cascade changes from this view in order to retain referential integrity
@@ -107,11 +115,7 @@ module GtfsDf
         end
 
         if trip_ids
-          filtered = filter!("trips", {"trip_id" => trip_ids.to_a}, filtered)
-        end
-      else
-        view.each do |file, filters|
-          filtered = filter!(file, filters, filtered.dup)
+          filtered = filter!("trips", {"trip_id" => trip_ids.to_a}, filtered.dup)
         end
       end
 
@@ -128,7 +132,7 @@ module GtfsDf
 
     private
 
-    def filter!(file, filters, filtered)
+    def filter!(file, filters, filtered, filter_only_children: false)
       unless filters.empty?
         df = filtered[file]
 
@@ -144,7 +148,7 @@ module GtfsDf
 
         filtered[file] = df
 
-        prune!(file, filtered)
+        prune!(file, filtered, filter_only_children:)
       end
 
       filtered
@@ -152,8 +156,9 @@ module GtfsDf
 
     # Traverses the grah to prune unreferenced entities from child dataframes
     # based on parent relationships. See GtfsDf::Graph::STOP_NODES
-    def prune!(root, filtered)
-      graph.each_bfs_edge(root) do |parent_node_id, child_node_id|
+    def prune!(root, filtered, filter_only_children: false)
+      maybe_digraph = filter_only_children ? graph : graph.to_undirected
+      maybe_digraph.each_bfs_edge(root) do |parent_node_id, child_node_id|
         parent_node = Graph::NODES[parent_node_id]
         child_node = Graph::NODES[child_node_id]
         parent_df = filtered[parent_node.fetch(:file)]
@@ -173,7 +178,7 @@ module GtfsDf
         end
         next unless child_df && child_df.height > 0
 
-        attrs = graph.get_edge_data(parent_node_id, child_node_id)
+        attrs = maybe_digraph.get_edge_data(parent_node_id, child_node_id)
 
         attrs[:dependencies].each do |dep|
           parent_col = dep[parent_node_id]

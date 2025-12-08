@@ -117,7 +117,7 @@ RSpec.describe GtfsDf::Feed do
                                 "stop_sequence" => [1, 2, 3, 1, 2]})
       end
 
-      context "when maintain_trip_dependencies = true" do
+      context "when filter_only_children = false" do
         it "filtering from trips cascades" do
           # We consider trips the "atomic unit" of GTFS
           view = {"trips" => {"trip_id" => %w[t1]}}
@@ -234,19 +234,67 @@ RSpec.describe GtfsDf::Feed do
         end
       end
 
-      context "when maintain_trip_dependencies = false" do
-        it "filtering from stop cascades but do not preserve trip dependencies" do
+      context "when filter_only_children = true" do
+        it "filtering from trips cascades to children only" do
+          # We consider trips the "atomic unit" of GTFS
+          view = {"trips" => {"trip_id" => %w[t1]}}
+          filtered = feed.filter(view, filter_only_children: true)
+
+          # Children are pruned
+          expect(filtered.stop_times["stop_id"].to_a).to eq(%w[S1 S2 S3])
+
+          # Not pruned
+          expect(filtered.stops["stop_id"].to_a).to match_array(%w[S1 S2 S3 S4 S5 S6])
+          expect(filtered.routes["route_id"].to_a).to eq(%w[1 2])
+          expect(filtered.agency["agency_id"].to_a).to eq(%w[A B])
+          expect(filtered.calendar["service_id"].to_a).to eq(%w[A B])
+        end
+
+        it "filtering from stop cascades to children only" do
           view = {"stops" => {"stop_id" => %w[S1]}}
-          filtered = feed.filter(view, false)
+          filtered = feed.filter(view, filter_only_children: true)
 
           # Retain all stop times for T1 but not T2
+          expect(filtered.stops["stop_id"].to_a).to match_array(%w[S1])
           expect(filtered.stop_times["stop_id"].to_a).to eq(%w[S1])
 
           # Retain all stops referenced by T1 T1
-          expect(filtered.stops["stop_id"].to_a).to match_array(%w[S1])
-          expect(filtered.routes["route_id"].to_a).to eq(%w[1])
+          expect(filtered.routes["route_id"].to_a).to eq(%w[1 2])
+          expect(filtered.agency["agency_id"].to_a).to eq(%w[A B])
+          expect(filtered.calendar["service_id"].to_a).to eq(%w[A B])
+        end
+
+        it "filtering from agency cascades to children only" do
+          # Filtering by agency should cascade to routes -> trips -> etc.
+          view = {"agency" => {"agency_id" => %w[A]}}
+          filtered = feed.filter(view, filter_only_children: true)
+
           expect(filtered.agency["agency_id"].to_a).to eq(%w[A])
+
+          expect(filtered.routes["route_id"].to_a).to eq(%w[1])
+          expect(filtered.trips["trip_id"].to_a).to eq(%w[t1])
+          expect(filtered.stop_times["stop_id"].to_a).to eq(%w[S1 S2 S3])
+
+          # Not pruned
+          expect(filtered.stops["stop_id"].to_a).to match_array(%w[S1 S2 S3 S4 S5 S6])
+          expect(filtered.calendar["service_id"].to_a).to eq(%w[A B])
+        end
+
+        it "filtering from calendar cascades to children only" do
+          # Filtering by agency should cascade to routes -> trips -> etc.
+          view = {"calendar" => {"service_id" => %w[A]}}
+          filtered = feed.filter(view, filter_only_children: true)
+
           expect(filtered.calendar["service_id"].to_a).to eq(%w[A])
+
+          # Only keep trips and stop times for this service
+          expect(filtered.trips["trip_id"].to_a).to eq(%w[t1])
+          expect(filtered.stop_times["stop_id"].to_a).to eq(%w[S1 S2 S3])
+
+          # Not pruned
+          expect(filtered.stops["stop_id"].to_a).to match_array(%w[S1 S2 S3 S4 S5 S6])
+          expect(filtered.routes["route_id"].to_a).to eq(%w[1 2])
+          expect(filtered.agency["agency_id"].to_a).to eq(%w[A B])
         end
       end
     end

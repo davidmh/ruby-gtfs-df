@@ -5,7 +5,7 @@ RSpec.describe GtfsDf::Graph do
     let(:graph) { described_class.build }
 
     it "includes all GTFS files as nodes" do
-      expect(graph.nodes.sort).to include(*%w[agency
+      expect(graph.nodes.sort.map(&:first)).to include(*%w[agency
         routes
         trips
         stop_times
@@ -31,13 +31,13 @@ RSpec.describe GtfsDf::Graph do
       expect(graph.get_edge_data("agency", "routes")[:dependencies]).to eq([{"agency" => "agency_id",
                                                                              "routes" => "agency_id"}])
 
-      expect(graph.get_edge_data("trips", "calendar")[:dependencies]).to eq([{"trips" => "service_id",
+      expect(graph.get_edge_data("calendar", "trips")[:dependencies]).to eq([{"trips" => "service_id",
                                                                               "calendar" => "service_id"}])
 
-      expect(graph.get_edge_data("fare_attributes", "agency")[:dependencies]).to eq([{"fare_attributes" => "agency_id",
+      expect(graph.get_edge_data("agency", "fare_attributes")[:dependencies]).to eq([{"fare_attributes" => "agency_id",
                                                                                       "agency" => "agency_id"}])
 
-      expect(graph.get_edge_data("fare_rules", "routes")[:dependencies]).to eq([{"fare_rules" => "route_id",
+      expect(graph.get_edge_data("routes", "fare_rules")[:dependencies]).to eq([{"fare_rules" => "route_id",
                                                                                  "routes" => "route_id",
                                                                                  :allow_null => true}])
 
@@ -54,21 +54,18 @@ RSpec.describe GtfsDf::Graph do
 
     it "has correct dependency attributes for new extension edges" do
       # Example: fare_leg_join_rules -> fare_leg_rules
-      expect(graph.has_edge?("fare_leg_join_rules", "fare_leg_rules")).to be true
-      expect(graph.get_edge_data("fare_leg_join_rules",
-        "fare_leg_rules")[:dependencies]).to include({"fare_leg_join_rules" => "fare_leg_rule_id",
+      expect(graph.has_edge?("fare_leg_rules", "fare_leg_join_rules")).to be true
+      expect(graph.get_edge_data("fare_leg_rules", "fare_leg_join_rules")[:dependencies]).to include({"fare_leg_join_rules" => "fare_leg_rule_id",
                                                                                 "fare_leg_rules" => "fare_leg_rule_id"})
 
       # Example: fare_transfer_rules -> fare_products
-      expect(graph.has_edge?("fare_transfer_rules", "fare_products")).to be true
-      expect(graph.get_edge_data("fare_transfer_rules",
-        "fare_products")[:dependencies]).to include({"fare_transfer_rules" => "fare_product_id",
+      expect(graph.has_edge?("fare_products", "fare_transfer_rules")).to be true
+      expect(graph.get_edge_data("fare_products", "fare_transfer_rules")[:dependencies]).to include({"fare_transfer_rules" => "fare_product_id",
                                                                                "fare_products" => "fare_product_id"})
 
-      # Example: stops -> areas (unidirectional)
-      expect(graph.has_edge?("stops", "areas")).to be true
-      expect(graph.get_edge_data("stops",
-        "areas")[:dependencies]).to include({"stops" => "area_id", "areas" => "area_id"})
+      # Example: stops -> areas
+      expect(graph.has_edge?("areas", "stops")).to be true
+      expect(graph.get_edge_data("areas", "stops")[:dependencies]).to include({"stops" => "area_id", "areas" => "area_id"})
 
       # Example: networks -> routes
       expect(graph.has_edge?("networks", "routes")).to be true
@@ -77,9 +74,8 @@ RSpec.describe GtfsDf::Graph do
                                                                         "routes" => "network_id"})
 
       # Example: route_networks -> routes
-      expect(graph.has_edge?("route_networks", "routes")).to be true
-      expect(graph.get_edge_data("route_networks",
-        "routes")[:dependencies]).to include({"route_networks" => "route_id",
+      expect(graph.has_edge?("routes", "route_networks")).to be true
+      expect(graph.get_edge_data("routes", "route_networks")[:dependencies]).to include({"route_networks" => "route_id",
                                                                         "routes" => "route_id"})
 
       # Example: location_groups -> stops
@@ -89,9 +85,8 @@ RSpec.describe GtfsDf::Graph do
                                                                        "stops" => "location_group_id"})
 
       # Example: location_group_stops -> stops
-      expect(graph.has_edge?("location_group_stops", "stops")).to be true
-      expect(graph.get_edge_data("location_group_stops",
-        "stops")[:dependencies]).to include({"location_group_stops" => "stop_id",
+      expect(graph.has_edge?("stops", "location_group_stops")).to be true
+      expect(graph.get_edge_data("stops", "location_group_stops")[:dependencies]).to include({"location_group_stops" => "stop_id",
                                                                        "stops" => "stop_id"})
 
       # Example: stop_times -> booking_rules
