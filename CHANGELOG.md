@@ -1,3 +1,8 @@
+## [0.5.0] - 2025-12-08
+### Maintenance
+
+- arrange edges so parent is always first
+- build directed graph
 ## [0.4.1] - 2025-12-05
 
 ### Added
