@@ -120,11 +120,11 @@ generate_changelog_entry() {
         [[ -z "$commit" ]] && continue
         [[ "$commit" =~ ^Merge\ (pull\ request|branch) ]] && continue
 
-        if [[ "$commit" =~ ^[Ff]eat(\(.+\))?:[[:space:]]* ]]; then
+        if [[ "$commit" =~ ^[Ff]eat\!?(\(.+\))?:[[:space:]]* ]]; then
             features+=("${commit#*: }")
-        elif [[ "$commit" =~ ^[Ff]ix(\(.+\))?:[[:space:]]* ]]; then
+        elif [[ "$commit" =~ ^[Ff]ix\!?(\(.+\))?:[[:space:]]* ]]; then
             fixes+=("${commit#*: }")
-        elif [[ "$commit" =~ ^[Cc]hore(\(.+\))?:[[:space:]]* ]]; then
+        elif [[ "$commit" =~ ^[Cc]hore\!?(\(.+\))?:[[:space:]]* ]]; then
             chores+=("${commit#*: }")
         fi
     done <<< "$commits"
