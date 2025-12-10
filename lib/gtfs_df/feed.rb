@@ -157,59 +157,76 @@ module GtfsDf
     # Traverses the grah to prune unreferenced entities from child dataframes
     # based on parent relationships. See GtfsDf::Graph::STOP_NODES
     def prune!(root, filtered, filter_only_children: false)
+      seen_edges = Set.new
       maybe_digraph = filter_only_children ? graph : graph.to_undirected
-      maybe_digraph.each_bfs_edge(root) do |parent_node_id, child_node_id|
-        parent_node = Graph::NODES[parent_node_id]
-        child_node = Graph::NODES[child_node_id]
-        parent_df = filtered[parent_node.fetch(:file)]
-        next unless parent_df
 
-        child_df = filtered[child_node.fetch(:file)]
-        # Certain nodes are pre-filtered because they reference only
-        # a piece of the dataframe
-        filter_attrs = child_node[:filter_attrs]
-        if filter_attrs && child_df.columns.include?(filter_attrs.fetch(:filter_col))
-          filter = filter_attrs.fetch(:filter)
-          # Temporarily remove rows that do not match node filter criteria to process them
-          # separately (e.g., when filtering stops, parent stations that should be preserved
-          # regardless of direct references)
-          saved_vals = child_df.filter(filter.is_not)
-          child_df = child_df.filter(filter)
-        end
-        next unless child_df && child_df.height > 0
+      queue = [root]
 
-        attrs = maybe_digraph.get_edge_data(parent_node_id, child_node_id)
+      while queue.length > 0
+        parent_node_id = queue.shift
+        maybe_digraph.adj[parent_node_id].each do |child_node_id, attrs|
+          edge = edge_id(parent_node_id, child_node_id)
 
-        attrs[:dependencies].each do |dep|
-          parent_col = dep[parent_node_id]
-          child_col = dep[child_node_id]
-          allow_null = !!dep[:allow_null]
+          next if seen_edges.include?(edge)
+          seen_edges.add(edge)
 
-          next unless parent_col && child_col &&
-            parent_df.columns.include?(parent_col) && child_df.columns.include?(child_col)
+          parent_node = Graph::NODES[parent_node_id]
+          child_node = Graph::NODES[child_node_id]
+          parent_df = filtered[parent_node.fetch(:file)]
+          next unless parent_df
 
-          # Get valid values from parent
-          valid_values = parent_df[parent_col].to_a.uniq.compact
-
-          # Filter child to only include rows that reference valid parent values
-          before = child_df.height
-          filter = Polars.col(child_col).is_in(valid_values)
-          if allow_null
-            filter = (filter | Polars.col(child_col).is_null)
+          child_df = filtered[child_node.fetch(:file)]
+          # Certain nodes are pre-filtered because they reference only
+          # a piece of the dataframe
+          filter_attrs = child_node[:filter_attrs]
+          if filter_attrs && child_df.columns.include?(filter_attrs.fetch(:filter_col))
+            filter = filter_attrs.fetch(:filter)
+            # Temporarily remove rows that do not match node filter criteria to process them
+            # separately (e.g., when filtering stops, parent stations that should be preserved
+            # regardless of direct references)
+            saved_vals = child_df.filter(filter.is_not)
+            child_df = child_df.filter(filter)
           end
-          child_df = child_df.filter(filter)
-          changed = child_df.height < before
+          next unless child_df && child_df.height > 0
 
-          # If we removed a part of the child_df earlier, concat it back on
-          if saved_vals
-            child_df = Polars.concat([child_df, saved_vals], how: "vertical")
-          end
+          queue << child_node_id
 
-          if changed
-            filtered[child_node.fetch(:file)] = child_df
+          attrs[:dependencies].each do |dep|
+            parent_col = dep[parent_node_id]
+            child_col = dep[child_node_id]
+            allow_null = !!dep[:allow_null]
+
+            next unless parent_col && child_col &&
+              parent_df.columns.include?(parent_col) && child_df.columns.include?(child_col)
+
+            # Get valid values from parent
+            valid_values = parent_df[parent_col].to_a.uniq.compact
+
+            # Filter child to only include rows that reference valid parent values
+            before = child_df.height
+            filter = Polars.col(child_col).is_in(valid_values)
+            if allow_null
+              filter = (filter | Polars.col(child_col).is_null)
+            end
+            child_df = child_df.filter(filter)
+            changed = child_df.height < before
+
+            # If we removed a part of the child_df earlier, concat it back on
+            if saved_vals
+              child_df = Polars.concat([child_df, saved_vals], how: "vertical")
+            end
+
+            if changed
+              filtered[child_node.fetch(:file)] = child_df
+            end
           end
         end
       end
+    end
+
+    def edge_id(parent, child)
+      # Alphabetize to make sure this works with undirected graph
+      [parent, child].sort.join("-")
     end
   end
 end
