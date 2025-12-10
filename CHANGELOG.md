@@ -1,3 +1,7 @@
+## [0.6.0] - 2025-12-09
+### Fixed
+
+- visit nodes multiple times
 ## [0.5.0] - 2025-12-08
 
 ### Added
