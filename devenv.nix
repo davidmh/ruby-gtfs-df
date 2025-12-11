@@ -7,7 +7,7 @@
     bundler.enable = false;
   };
 
-  pre-commit.hooks = {
+  git-hooks.hooks = {
     conform.enable = true;
   };
 }
