@@ -10,4 +10,6 @@
   git-hooks.hooks = {
     conform.enable = true;
   };
+
+  packages = with pkgs; [ git-cliff ];
 }
