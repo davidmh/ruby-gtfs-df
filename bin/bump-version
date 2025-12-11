@@ -95,101 +95,25 @@ update_lock_file() {
 generate_changelog_entry() {
     local version="$1"
     local last_tag
-    local commits
-    local today
 
-    echo "📋 Generating changelog entry..." >&2
+    echo "📋 Generating changelog entry with git-cliff..." >&2
 
-    today=$(date +%Y-%m-%d)
     last_tag=$(git describe --tags --abbrev=0 2>/dev/null || echo "")
 
-    if [[ -z "$last_tag" ]]; then
-        echo "⚠️  No previous tag found, getting all commits" >&2
-        commits=$(git log --pretty=format:"%s" --reverse)
-    else
-        echo "📌 Getting commits since $last_tag" >&2
-        commits=$(git log "$last_tag..HEAD" --pretty=format:"%s" --reverse)
-    fi
-
-    # Arrays for categorizing commits
-    local -a features=()
-    local -a fixes=()
-    local -a chores=()
-
-    while IFS= read -r commit; do
-        [[ -z "$commit" ]] && continue
-        [[ "$commit" =~ ^Merge\ (pull\ request|branch) ]] && continue
-
-        if [[ "$commit" =~ ^[Ff]eat\!?(\(.+\))?:[[:space:]]* ]]; then
-            features+=("${commit#*: }")
-        elif [[ "$commit" =~ ^[Ff]ix\!?(\(.+\))?:[[:space:]]* ]]; then
-            fixes+=("${commit#*: }")
-        elif [[ "$commit" =~ ^[Cc]hore\!?(\(.+\))?:[[:space:]]* ]]; then
-            chores+=("${commit#*: }")
-        fi
-    done <<< "$commits"
-
-    # Build changelog entry
-    local entry="## [$version] - $today"$'\n'
-
-    if [[ ${#features[@]} -gt 0 ]]; then
-        entry+=$'\n'"### Added"$'\n'$'\n'
-        for feat in "${features[@]}"; do
-            entry+="- $feat"$'\n'
-        done
-        entry+=$'\n'
-    fi
-
-    if [[ ${#fixes[@]} -gt 0 ]]; then
-        entry+="### Fixed"$'\n'$'\n'
-        for fix in "${fixes[@]}"; do
-            entry+="- $fix"$'\n'
-        done
-        entry+=$'\n'
-    fi
-
-    if [[ ${#chores[@]} -gt 0 ]]; then
-        entry+="### Maintenance"$'\n'$'\n'
-        for chore in "${chores[@]}"; do
-            entry+="- $chore"$'\n'
-        done
-        entry+=$'\n'
-    fi
-
-    echo "$entry"
+    echo "📌 Generating changelog since $last_tag" >&2
+    git-cliff --unreleased --tag "$version" --strip all "$last_tag..HEAD"
 }
 
 update_changelog() {
-    local changelog_entry="$1"
+    local new_version="$1"
+    local last_tag
 
     echo ""
-    echo "📝 Updating $CHANGELOG_FILE"
+    echo "📝 Updating $CHANGELOG_FILE with git-cliff"
 
-    if [[ -f "$CHANGELOG_FILE" ]]; then
-        local current_content
-        current_content=$(cat "$CHANGELOG_FILE")
+    last_tag=$(git describe --tags --abbrev=0 2>/dev/null || echo "")
 
-        if grep -q '^## \[' "$CHANGELOG_FILE"; then
-            # Already has version entries - insert new entry before first version entry
-            awk -v entry="$changelog_entry" '
-                !inserted && /^## \[/ { 
-                    print entry
-                    inserted=1 
-                }
-                { print }
-            ' "$CHANGELOG_FILE" > "${CHANGELOG_FILE}.tmp"
-            mv "${CHANGELOG_FILE}.tmp" "$CHANGELOG_FILE"
-        else
-            # First version entry
-            echo "$changelog_entry" > "${CHANGELOG_FILE}.tmp"
-            cat "$CHANGELOG_FILE" >> "${CHANGELOG_FILE}.tmp"
-            mv "${CHANGELOG_FILE}.tmp" "$CHANGELOG_FILE"
-        fi
-    else
-        echo "# Changelog" > "$CHANGELOG_FILE"
-        echo "" >> "$CHANGELOG_FILE"
-        echo "$changelog_entry" >> "$CHANGELOG_FILE"
-    fi
+    git-cliff --tag "$new_version" --output "$CHANGELOG_FILE"
 }
 
 commit_changes() {
@@ -283,9 +207,11 @@ main() {
 
     update_lock_file
 
+    update_changelog "$new_version"
+
+    # Generate changelog entry for PR body
     local changelog_entry
     changelog_entry=$(generate_changelog_entry "$new_version")
-    update_changelog "$changelog_entry"
 
     commit_changes "$new_version"
     push_branch "$branch_name"

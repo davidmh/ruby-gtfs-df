@@ -1,59 +1,125 @@
-## [0.6.0] - 2025-12-09
-### Fixed
+### 🐛 Bug Fixes
 
-- visit nodes multiple times
+- Visit nodes multiple times
+
+### ⚙️ Miscellaneous Tasks
+
+- Bump version to 0.6.0
 ## [0.5.0] - 2025-12-08
 
-### Added
+### 🚀 Features
 
-- add Feed#filter filter_only_children param
+- [**breaking**] Add Feed#filter filter_only_children param
 
-### Maintenance
+### ⚙️ Miscellaneous Tasks
 
-- arrange edges so parent is always first
-- build directed graph
-- allow ! in commit messages
+- Arrange edges so parent is always first
+- Build directed graph
+- Allow ! in commit messages
+- Bump version to 0.5.0
 ## [0.4.1] - 2025-12-05
 
-### Added
+### 🚀 Features
 
-- handle extra whitespace in csvs
+- Handle extra whitespace in csvs
 
-### Maintenance
+### ⚙️ Miscellaneous Tasks
 
-- remove unused initializer format
+- Remove unreleased section
+- Remove unused initializer format
+- Bump version to 0.4.1
 ## [0.4.0] - 2025-12-04
 
-### Added
+### 🚀 Features
 
-- allow setting maintain_trip_dependencies=false
+- Allow setting maintain_trip_dependencies=false
 
-### Fixed
+### 🐛 Bug Fixes
 
-- parse stop_lat as float
-- add missing agency -> fare_attributes edge
-- allow null for fare_rules
+- Parse stop_lat as float
+- Add missing agency -> fare_attributes edge
+- Allow null for fare_rules
 
-### Maintenance
+### ⚙️ Miscellaneous Tasks
 
-- provide accessor for gtfs_files (utility)
-- add yard docs
-
+- Provide accessor for gtfs_files (utility)
+- Add yard docs
+- Bump version to 0.4.0
 ## [0.3.0] - 2025-12-04
 
-### Added
+### 🚀 Features
 
-- keep parent stations linked to used stops
+- Keep parent stations linked to used stops
 
-### Fixed
+### 🐛 Bug Fixes
 
-- handle null values
-- update lock on version bump
+- Handle null values
+- Update lock on version bump
 
-### Maintenance
+### ⚙️ Miscellaneous Tasks
 
-- reuse load_from_dir logic in reader
-- clean up unused method + better comments
-## [0.1.0] - 2025-11-10
+- Reuse load_from_dir logic in reader
+- Clean up unused method + better comments
+- Autopublish on release tag push
+- Automate release script
+- Release tag script
+- Bump version to 0.3.0
+## [0.2.0] - 2025-12-01
 
+### 🚀 Features
+
+- Add Reader.load_from_dir
+
+### 🐛 Bug Fixes
+
+- Require correct entrypoint
+- Cascade empty view filters
+- Handle parsing when cols size = schema size
+- Parse extraneous columns as strings
+- Cascade changes reliably
+- Filter with trips as atomic unit
+- Remove nonexistent booking_rule association
+- Add empty string to null vals
+
+### 📚 Documentation
+
+- Include processing time
+- Update gem name
+
+### ⚙️ Miscellaneous Tasks
+
+- Add byebug gem
+- Include byebug in spec_helper.rb
+- Rearrange filter specs
+- Add pending specs for expected behaviors
+- [**breaking**] Removes duplicate load_from_dir method (use reader instead)
+- Mutate for both filter! and prune!
+- Tag version 0.2.0
+## [0.1.1] - 2025-11-12
+
+### 🐛 Bug Fixes
+
+- Release workflow
+
+### ⚙️ Miscellaneous Tasks
+
+- Rename namespace to follow ruby conventions
+- Bump version
+- Remove broken release flow
+- Clarify gem status
+- Republish version
+## [0.1.0] - 2025-11-12
+
+### 📚 Documentation
+
+- Readme and gemspec details
+- Time parsing to-do
+
+### ⚙️ Miscellaneous Tasks
+
+- Initial commit
+- Make the lock platform agnostic
+- Validate commit messages
+- Run spec and standard steps separately
+- Release flow
 - Initial release
