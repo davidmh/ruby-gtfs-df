@@ -1,5 +1,7 @@
 # ruby-gtfs-df
 
+[![Tests](https://github.com/davidmh/ruby-gtfs-df/actions/workflows/tests.yml/badge.svg?branch=main)](https://github.com/davidmh/ruby-gtfs-df/actions/workflows/tests.yml) [![Gem Version](https://badge.fury.io/rb/gtfs_df.svg)](https://badge.fury.io/rb/gtfs_df)
+
 A ruby gem to manipulate [GTFS] feeds using DataFrames using [Polars] ([ruby-polars])
 
 This project was created to bring the power of [partridge] to ruby.
