@@ -12,7 +12,7 @@ module GtfsDf
         elsif input.is_a?(String)
           # TODO: use `infer_schema: false` instead of `infer_schema_length` after polars release:
           # https://github.com/ankane/ruby-polars/blob/master/CHANGELOG.md#100-unreleased
-          df = Polars.read_csv(input, infer_schema_length: 0)
+          df = Polars.read_csv(input, infer_schema_length: 0, encoding: "utf8-lossy")
             .rename(->(col) { col.strip })
 
           dtypes = self.class::SCHEMA.slice(*df.columns)
