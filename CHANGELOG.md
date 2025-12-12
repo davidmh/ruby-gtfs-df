@@ -1,3 +1,19 @@
+## [0.6.1] - 2025-12-12
+
+### 🐛 Bug Fixes
+
+- Parse whitespace in column headers
+
+### 📚 Documentation
+
+- Badges
+
+### ⚙️ Miscellaneous Tasks
+
+- Update devenv
+- Drop custom changelog parsing
+## [0.6.0] - 2025-12-10
+
 ### 🐛 Bug Fixes
 
 - Visit nodes multiple times
