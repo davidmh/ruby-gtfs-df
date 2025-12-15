@@ -1,3 +1,8 @@
+## [0.6.2] - 2025-12-15
+
+### 🐛 Bug Fixes
+
+- Permit non UTF-8 characters
 ## [0.6.1] - 2025-12-12
 
 ### 🐛 Bug Fixes
@@ -12,6 +17,7 @@
 
 - Update devenv
 - Drop custom changelog parsing
+- Bump version to 0.6.1
 ## [0.6.0] - 2025-12-10
 
 ### 🐛 Bug Fixes
