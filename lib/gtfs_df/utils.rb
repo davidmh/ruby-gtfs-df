@@ -1,5 +1,50 @@
 module GtfsDf
   module Utils
+    SECONDS_IN_MINUTE = 60
+    SECONDS_IN_HOUR = SECONDS_IN_MINUTE * 60
+    SECONDS_IN_DAY = SECONDS_IN_HOUR * 24
+
+    # Converts a GTFS time string column to a seconds since midnight integer
+    #
+    # The input string is expected to be in the HH:MM:SS format (H:MM:SS is
+    # also accepted).
+    #
+    # @example dataframe.with_columns(GtfsDf::Utils.as_seconds_since_midnight('start_time'))
+    # This will return the dataframe with the start_time column as seconds since midnight
+    #
+    # @param col_name String The column to convert
+    def self.as_seconds_since_midnight(col_name)
+      parts = Polars.col(col_name).str.split(":")
+
+      hours = parts.list.get(0).cast(:i64)
+      minutes = parts.list.get(1).cast(:i64)
+      seconds = parts.list.get(2).cast(:i64)
+
+      (hours * SECONDS_IN_HOUR) +
+        (minutes * SECONDS_IN_MINUTE) +
+        seconds
+    end
+
+    # Converts a GTFS seconds since midnight integer to a time string with the format HH:MM:SS
+    #
+    # @example dataframe.with_columns(GtfsDf::Utils.as_time_string('start_time'))
+    # This will return the dataframe with the start_time column as an HH:MM:SS string
+    #
+    # @param col_name String the column to convert
+    def self.as_time_string(col_name)
+      total_seconds = Polars.col(col_name)
+      hours = total_seconds.floordiv(SECONDS_IN_HOUR)
+      minutes = (total_seconds % SECONDS_IN_HOUR).floordiv(SECONDS_IN_MINUTE)
+      seconds = (total_seconds % SECONDS_IN_MINUTE)
+
+      Polars.format(
+        "{}:{}:{}",
+        hours.cast(:str).str.zfill(2),
+        minutes.cast(:str).str.zfill(2),
+        seconds.cast(:str).str.zfill(2)
+      )
+    end
+
     # Parses a GTFS time string
     #
     # The input string is expected to be in the HH:MM:SS format (H:MM:SS is
