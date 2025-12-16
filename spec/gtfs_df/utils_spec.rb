@@ -1,6 +1,46 @@
 require "spec_helper"
 
 RSpec.describe GtfsDf::Utils do
+  describe "Polars time conversion utils" do
+    let(:time_strings) { %w[08:30:00 00:00:00 23:59:59 36:00:00] }
+    let(:seconds_since_midnight) do
+      [
+        8 * 3600 + 30 * 60,
+        0,
+        23 * 3600 + 59 * 60 + 59,
+        36 * 3600
+      ]
+    end
+
+    describe ".as_seconds_since_midnight" do
+      let(:df) do
+        Polars::DataFrame.new({"arrival_times" => time_strings})
+      end
+
+      it "converts GTFS time string -> seconds since midnight" do
+        new_df = df.with_columns(
+          described_class.as_seconds_since_midnight("arrival_times")
+        )
+
+        expect(new_df["arrival_times"].to_a).to eq(seconds_since_midnight)
+      end
+    end
+
+    describe ".as_time_string" do
+      let(:df) do
+        Polars::DataFrame.new({"arrival_times" => seconds_since_midnight})
+      end
+
+      it "converts seconds since midnight -> GTFS time string" do
+        new_df = df.with_columns(
+          described_class.as_time_string("arrival_times")
+        )
+
+        expect(new_df["arrival_times"].to_a).to eq(time_strings)
+      end
+    end
+  end
+
   describe "GTFS time parsing" do
     it "parses standard GTFS times correctly" do
       expect(described_class.parse_time("08:30:00")).to eq(8 * 3600 + 30 * 60)
