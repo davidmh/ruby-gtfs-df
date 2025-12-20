@@ -37,12 +37,16 @@ module GtfsDf
     ].freeze
 
     attr_accessor(*GTFS_FILES)
-    attr_reader(:graph)
+    attr_reader(:graph, :parse_times)
 
     # Initialize with a hash of DataFrames
     REQUIRED_GTFS_FILES = %w[agency stops routes trips stop_times].freeze
 
-    def initialize(data = {})
+    # @param data [Hash] Hash of DataFrames for each GTFS file
+    # @param parse_times [Boolean] Whether to parse time fields to seconds since midnight (default: false)
+    def initialize(data = {}, parse_times: false)
+      @parse_times = parse_times
+
       missing = REQUIRED_GTFS_FILES.reject { |file| data[file].is_a?(Polars::DataFrame) }
       # At least one of calendar or calendar_dates must be present
       unless data["calendar"].is_a?(Polars::DataFrame) || data["calendar_dates"].is_a?(Polars::DataFrame)
@@ -66,6 +70,19 @@ module GtfsDf
         end
         if df.is_a?(Polars::DataFrame) && schema_class && schema_class.const_defined?(:SCHEMA)
           df = schema_class.new(df).df
+          # Parse time fields if enabled and they're still strings
+          if @parse_times && schema_class.respond_to?(:time_fields)
+            time_fields = schema_class.time_fields
+            time_fields.each do |field|
+              next unless df.columns.include?(field)
+              # Only parse if the field is still a string (not already parsed)
+              if df[field].dtype == Polars::String
+                df = df.with_columns(
+                  GtfsDf::Utils.as_seconds_since_midnight(field)
+                )
+              end
+            end
+          end
         end
         instance_variable_set("@#{file}", df.is_a?(Polars::DataFrame) ? df : nil)
       end
@@ -127,7 +144,7 @@ module GtfsDf
 
         (!df || df.height == 0) && !is_required_file
       end
-      self.class.new(filtered)
+      self.class.new(filtered, parse_times: @parse_times)
     end
 
     private

@@ -26,6 +26,13 @@ module GtfsDf
 
       REQUIRED_FIELDS = %w[trip_id stop_sequence stop_id]
 
+      TIME_FIELDS = %w[
+        arrival_time
+        departure_time
+        start_pickup_drop_off_window
+        end_pickup_drop_off_window
+      ].freeze
+
       ENUM_VALUE_MAP = {
         "pickup_type" => :PICKUP_TYPE,
         "drop_off_type" => :DROP_OFF_TYPE,

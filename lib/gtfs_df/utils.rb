@@ -93,6 +93,21 @@ module GtfsDf
       )
     end
 
+    # Converts a seconds since midnight Series to GTFS time strings for inspection
+    #
+    # Use this method to get a readable view of time columns during debugging.
+    # It's not meant to be performant.
+    #
+    # @example GtfsDf::Utils.inspect_time(feed.stop_times["arrival_time"])
+    #
+    # @param series Polars::Series The series to convert
+    # @return Polars::Series A series with time strings
+    def self.inspect_time(series)
+      series.to_frame.with_columns(
+        as_time_string(series.name)
+      )[series.name]
+    end
+
     # Parses a GTFS date string
     #
     # The input string is expected to be a service day in the YYYYMMDD format.
