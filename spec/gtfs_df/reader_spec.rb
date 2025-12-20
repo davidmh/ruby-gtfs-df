@@ -64,4 +64,24 @@ RSpec.describe GtfsDf::Reader do
 
     it_behaves_like "feed object"
   end
+
+  describe "time parsing" do
+    it "parses time fields when parse_times is true" do
+      feed = described_class.load_from_zip(zip_path, parse_times: true)
+
+      expect(feed.parse_times).to be true
+      # Check that stop_times arrival/departure times are integers
+      expect(feed.stop_times["arrival_time"].dtype).to eq(Polars::Int64)
+      expect(feed.stop_times["departure_time"].dtype).to eq(Polars::Int64)
+    end
+
+    it "keeps time fields as strings when parse_times is false" do
+      feed = described_class.load_from_zip(zip_path, parse_times: false)
+
+      expect(feed.parse_times).to be false
+      # Check that stop_times arrival/departure times are strings
+      expect(feed.stop_times["arrival_time"].dtype).to eq(Polars::String)
+      expect(feed.stop_times["departure_time"].dtype).to eq(Polars::String)
+    end
+  end
 end
