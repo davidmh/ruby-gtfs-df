@@ -68,6 +68,25 @@ RSpec.describe GtfsDf::Writer do
       # Compare route_ids
       expect(reloaded_feed.routes["route_id"].to_a.sort).to eq(original_feed.routes["route_id"].to_a.sort)
     end
+
+    it "converts times back to strings when writing with parse_times enabled" do
+      original_feed = GtfsDf::Reader.load_from_zip(fixture_zip, parse_times: true)
+
+      # Verify times are integers in memory
+      expect(original_feed.stop_times["arrival_time"].dtype).to eq(Polars::Int64)
+
+      GtfsDf::Writer.write_to_zip(original_feed, roundtrip_zip)
+
+      # Read without parsing to check the string format in the file
+      string_feed = GtfsDf::Reader.load_from_zip(roundtrip_zip, parse_times: false)
+
+      # Verify times are strings in the file
+      expect(string_feed.stop_times["arrival_time"].dtype).to eq(Polars::String)
+      # Verify the format matches HH:MM:SS
+      string_feed.stop_times["arrival_time"].to_a.compact.first(5).each do |time|
+        expect(time).to match(/^\d{2}:\d{2}:\d{2}$/)
+      end
+    end
   end
 
   describe "error handling" do

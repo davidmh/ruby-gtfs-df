@@ -36,6 +36,10 @@ module GtfsDf
       self.class::SCHEMA.keys
     end
 
+    def self.time_fields
+      const_defined?(:TIME_FIELDS) ? const_get(:TIME_FIELDS) : []
+    end
+
     def valid?
       @validator.valid?
     end
