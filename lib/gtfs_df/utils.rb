@@ -1,5 +1,7 @@
 module GtfsDf
   module Utils
+    extend self
+
     SECONDS_IN_MINUTE = 60
     SECONDS_IN_HOUR = SECONDS_IN_MINUTE * 60
     SECONDS_IN_DAY = SECONDS_IN_HOUR * 24
@@ -19,7 +21,7 @@ module GtfsDf
     #
     # @param str String|Integer
     # @return Integer|nil seconds since midnight, or nil if invalid
-    def self.parse_time(str)
+    def parse_time(str)
       return str if str.is_a?(Integer)
       return nil if str.nil? || (str.respond_to?(:strip) && str.strip.empty?)
 
@@ -38,7 +40,7 @@ module GtfsDf
     #
     # @param seconds Integer seconds since midnight
     # @return String|nil time in HH:MM:SS format, or nil if invalid
-    def self.format_time(seconds)
+    def format_time(seconds)
       return nil if seconds.nil?
       return seconds if seconds.is_a?(String)
 
@@ -59,7 +61,7 @@ module GtfsDf
     #
     # @param col_name String The column to convert
     # @return Polars::Expr
-    def self.as_seconds_since_midnight(col_name)
+    def as_seconds_since_midnight(col_name)
       parts = Polars.col(col_name).str.split(":")
 
       hours = parts.list.get(0).cast(:i64)
@@ -79,7 +81,7 @@ module GtfsDf
     #
     # @param col_name String The column to convert
     # @return Polars::Expr
-    def self.as_time_string(col_name)
+    def as_time_string(col_name)
       total_seconds = Polars.col(col_name)
       hours = total_seconds.floordiv(SECONDS_IN_HOUR)
       minutes = (total_seconds % SECONDS_IN_HOUR).floordiv(SECONDS_IN_MINUTE)
@@ -102,7 +104,7 @@ module GtfsDf
     #
     # @param series Polars::Series The series to convert
     # @return Polars::Series A series with time strings
-    def self.inspect_time(series)
+    def inspect_time(series)
       series.to_frame.with_columns(
         as_time_string(series.name)
       )[series.name]
@@ -117,7 +119,7 @@ module GtfsDf
     # @example 20180913 for September 13th, 2018.
     #
     # @param str String
-    def self.parse_date(str)
+    def parse_date(str)
       return nil if str.nil? || str.strip.empty?
       return nil unless str.match?(/^\d{8}$/)
 
