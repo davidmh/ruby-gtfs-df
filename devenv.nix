@@ -1,6 +1,8 @@
-{ pkgs, lib, config, inputs, ... }:
+{ pkgs, ... }:
 
 {
+  devenv.warnOnNewVersion = false;
+
   languages.ruby = {
     enable = true;
     version = "3.4.7";
