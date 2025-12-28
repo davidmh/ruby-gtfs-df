@@ -34,8 +34,12 @@ Whirly.configure spinner: "dots", stop: "✓"
 
 Whirly.start do
   Whirly.status = "Loading"
+
+  start_time = Time.now
   feed = GtfsDf::Reader.load_from_zip(input_path)
-  Whirly.status = "Loaded"
+  elapsed = Time.now - start_time
+
+  Whirly.status = "Loaded (#{elapsed.round(2)}s)"
 end
 
 agency_ids.each do |agency_id|
@@ -45,7 +49,7 @@ agency_ids.each do |agency_id|
     start_time = Time.now
 
     Whirly.status = "-> #{agency_id} filtering..."
-    filtered_feed = feed.filter("agency" => {"agency_id" => agency_id})
+    filtered_feed = feed.filter({"agency" => {"agency_id" => agency_id}})
 
     Whirly.status = "-> #{agency_id} writing..."
     GtfsDf::Writer.write_to_zip(filtered_feed, output_path)

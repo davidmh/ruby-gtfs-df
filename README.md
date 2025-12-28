@@ -49,19 +49,19 @@ The library supports filtering feeds by any field in any table. The filter autom
 
 ```ruby
 # Filter by agency
-filtered_feed = feed.filter('agency' => { 'agency_id' => 'MTA' })
+filtered_feed = feed.filter({ 'agency' => { 'agency_id' => 'MTA' } })
 
 # Filter by route
-filtered_feed = feed.filter('routes' => { 'route_id' => ['1', '2', '3'] })
+filtered_feed = feed.filter({ 'routes' => { 'route_id' => ['1', '2', '3'] } })
 
 # Filter by a service
-filtered_feed = feed.filter('calendar' => { 'service_id' => 'WEEKDAY' })
+filtered_feed = feed.filter({ 'calendar' => { 'service_id' => 'WEEKDAY' } })
 
 # Multiple filters
-filtered_feed = feed.filter(
+filtered_feed = feed.filter({
   'agency' => { 'agency_id' => 'MTA' },
   'routes' => { 'route_type' => 1 } # Filter to subway routes
-)
+})
 ```
 
 When you filter by a field, the library automatically:
