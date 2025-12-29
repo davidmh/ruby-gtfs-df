@@ -17,6 +17,11 @@ module GtfsDf
         end_time
         headway_secs
       ].freeze
+
+      TIME_FIELDS = %w[
+        start_time
+        end_time
+      ].freeze
     end
   end
 end

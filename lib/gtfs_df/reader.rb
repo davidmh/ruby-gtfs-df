@@ -3,7 +3,11 @@
 module GtfsDf
   class Reader
     # Loads a GTFS zip file and returns a Feed
-    def self.load_from_zip(zip_path)
+    #
+    # @param zip_path [String] Path to the GTFS zip file
+    # @param parse_times [Boolean] Whether to parse time fields to seconds since midnight (default: false)
+    # @return [Feed] The loaded GTFS feed
+    def self.load_from_zip(zip_path, parse_times: false)
       data = nil
 
       Dir.mktmpdir do |tmpdir|
@@ -15,14 +19,18 @@ module GtfsDf
           end
         end
 
-        data = load_from_dir(tmpdir)
+        data = load_from_dir(tmpdir, parse_times: parse_times)
       end
 
       data
     end
 
     # Loads a GTFS dir and returns a Feed
-    def self.load_from_dir(dir_path)
+    #
+    # @param dir_path [String] Path to the GTFS directory
+    # @param parse_times [Boolean] Whether to parse time fields to seconds since midnight (default: false)
+    # @return [Feed] The loaded GTFS feed
+    def self.load_from_dir(dir_path, parse_times: false)
       data = {}
       GtfsDf::Feed::GTFS_FILES.each do |gtfs_file|
         path = File.join(dir_path, "#{gtfs_file}.txt")
@@ -31,7 +39,7 @@ module GtfsDf
         data[gtfs_file] = data_frame(gtfs_file, path)
       end
 
-      GtfsDf::Feed.new(data)
+      GtfsDf::Feed.new(data, parse_times: parse_times)
     end
 
     private_class_method def self.data_frame(gtfs_file, path)

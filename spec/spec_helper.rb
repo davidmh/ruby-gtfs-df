@@ -13,4 +13,7 @@ RSpec.configure do |config|
   config.expect_with :rspec do |c|
     c.syntax = :expect
   end
+
+  # Inject util helpers to have them readily available in the test env
+  config.include GtfsDf::Utils
 end

@@ -608,4 +608,83 @@ RSpec.describe GtfsDf::Feed do
       expect(filtered.booking_rules["booking_rule_id"].to_a).to eq(["BR1"])
     end
   end
+
+  describe "time parsing" do
+    let(:stop_times_with_times) do
+      Polars::DataFrame.new({
+        "trip_id" => %w[t1 t1 t2],
+        "stop_id" => %w[S1 S2 S1],
+        "stop_sequence" => [1, 2, 1],
+        "arrival_time" => ["08:30:00", "09:00:00", "25:35:00"],
+        "departure_time" => ["08:30:00", "09:05:00", "25:40:00"]
+      })
+    end
+
+    let(:frequencies_with_times) do
+      Polars::DataFrame.new({
+        "trip_id" => %w[t1 t2],
+        "start_time" => ["06:00:00", "18:00:00"],
+        "end_time" => ["22:00:00", "26:00:00"],
+        "headway_secs" => ["600", "900"]
+      })
+    end
+
+    let(:feed_with_times) do
+      {
+        "agency" => agency_df,
+        "stops" => stops_df,
+        "routes" => routes_df,
+        "trips" => trips_df,
+        "stop_times" => stop_times_with_times,
+        "frequencies" => frequencies_with_times,
+        "calendar" => calendar_df
+      }
+    end
+
+    it "parses time fields to seconds when parse_times is true" do
+      feed = GtfsDf::Feed.new(feed_with_times, parse_times: true)
+
+      # Stop times should be parsed to integers
+      expect(feed.stop_times["arrival_time"].to_a).to eq([
+        8 * 3600 + 30 * 60,   # 08:30:00
+        9 * 3600,              # 09:00:00
+        25 * 3600 + 35 * 60    # 25:35:00
+      ])
+      expect(feed.stop_times["departure_time"].to_a).to eq([
+        8 * 3600 + 30 * 60,    # 08:30:00
+        9 * 3600 + 5 * 60,     # 09:05:00
+        25 * 3600 + 40 * 60    # 25:40:00
+      ])
+
+      # Frequencies should also be parsed
+      expect(feed.frequencies["start_time"].to_a).to eq([
+        6 * 3600,              # 06:00:00
+        18 * 3600              # 18:00:00
+      ])
+      expect(feed.frequencies["end_time"].to_a).to eq([
+        22 * 3600,             # 22:00:00
+        26 * 3600              # 26:00:00
+      ])
+    end
+
+    it "keeps time fields as strings when parse_times is false" do
+      feed = GtfsDf::Feed.new(feed_with_times, parse_times: false)
+
+      expect(feed.stop_times["arrival_time"].to_a).to eq(["08:30:00", "09:00:00", "25:35:00"])
+      expect(feed.stop_times["departure_time"].to_a).to eq(["08:30:00", "09:05:00", "25:40:00"])
+      expect(feed.frequencies["start_time"].to_a).to eq(["06:00:00", "18:00:00"])
+      expect(feed.frequencies["end_time"].to_a).to eq(["22:00:00", "26:00:00"])
+    end
+
+    it "preserves parse_times setting when filtering" do
+      feed = GtfsDf::Feed.new(feed_with_times, parse_times: true)
+      filtered = feed.filter({"trips" => {"trip_id" => ["t1"]}})
+
+      expect(filtered.parse_times).to be true
+      expect(filtered.stop_times["arrival_time"].to_a).to eq([
+        8 * 3600 + 30 * 60,
+        9 * 3600
+      ])
+    end
+  end
 end
