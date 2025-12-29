@@ -31,6 +31,24 @@ module GtfsDf
       end
     end
 
+    # Exports a Feed to a directory as individual text files
+    #
+    # @param feed [Feed] The GTFS feed to export
+    # @param dir_path [String] The path where the directory will be created
+    def self.write_to_dir(feed, dir_path)
+      FileUtils.mkdir_p(dir_path)
+      GtfsDf::Feed::GTFS_FILES.each do |file|
+        df = feed.send(file)
+        next unless df.is_a?(Polars::DataFrame)
+
+        # Convert time fields back to strings if parse_times was enabled
+        df = format_time_fields(file, df) if feed.parse_times
+
+        # Write CSV directly to file
+        df.write_csv(File.join(dir_path, "#{file}.txt"))
+      end
+    end
+
     # Formats time fields back to HH:MM:SS strings for a given GTFS file
     #
     # @param file [String] The GTFS file name (e.g., "stop_times")
