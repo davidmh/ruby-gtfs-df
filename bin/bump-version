@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
-set -e
+
+set -eo pipefail
 
 # Script to bump gem version, generate changelog, and create a PR
 
@@ -92,6 +93,17 @@ update_lock_file() {
   bundle install
 }
 
+update_example_lock_file() {
+  echo ""
+  echo "🔓 Updating example lock file"
+  pushd ./examples/split-by-agency/
+  bundle install
+
+  echo "🧪 Test the example works with the new version"
+  bundle exec split_by_agency.rb -i ../../spec/fixtures/sample_gtfs.zip --ids DTA
+  popd
+}
+
 generate_changelog_entry() {
     local version="$1"
     local last_tag
@@ -120,7 +132,7 @@ commit_changes() {
     local version="$1"
     echo ""
     echo "💾 Committing changes..."
-    git add "$VERSION_FILE" "$CHANGELOG_FILE" Gemfile.lock
+    git add "$VERSION_FILE" "$CHANGELOG_FILE" Gemfile.lock examples/split-by-agency/Gemfile.lock
     git commit -m "chore: bump version to $version"
 }
 
@@ -203,9 +215,12 @@ main() {
     local branch_name="release/v$new_version"
 
     create_branch "$branch_name"
+
     update_version_file "$current_version" "$new_version"
 
     update_lock_file
+
+    update_example_lock_file
 
     update_changelog "$new_version"
 
