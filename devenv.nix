@@ -5,7 +5,7 @@
 
   languages.ruby = {
     enable = true;
-    version = "3.4.7";
+    versionFile = ./.ruby-version;
     bundler.enable = false;
   };
 
