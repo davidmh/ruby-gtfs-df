@@ -9,7 +9,7 @@ jobs:
     runs-on: ubuntu-latest
     name: Commit Message Check
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
         with:
           fetch-depth: 0
       - name: Conform Action
@@ -24,7 +24,7 @@ jobs:
           - '3.4.7'
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: Set up Ruby
         uses: ruby/setup-ruby@v1
