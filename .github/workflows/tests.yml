@@ -13,7 +13,7 @@ jobs:
         with:
           fetch-depth: 0
       - name: Conform Action
-        uses: siderolabs/conform@v0.1.0-alpha.29
+        uses: siderolabs/conform@v0.1.0-alpha.30
 
   build:
     runs-on: ubuntu-latest
