@@ -1,8 +1,36 @@
+## [0.7.0] - 2025-12-30
+
+### 🚀 Features
+
+- Add GTFS time parsing and formatting utilities
+- Option to parse time fields as seconds since midnight
+- Thread time columns through the input/output cycle
+- Allow modifying the parse_time flag after extraction
+- Provide a method to write to a directory
+
+### 💼 Other
+
+- Silence devenv version warning
+- Update example on release
+- Replace byebug with pry-byebug
+- Enable dependabot updates
+
+### 📚 Documentation
+
+- Update filter examples to use explicit hash syntax
+
+### ⚙️ Miscellaneous Tasks
+
+- Include the util helpers in the console and the test spec
 ## [0.6.2] - 2025-12-15
 
 ### 🐛 Bug Fixes
 
 - Permit non UTF-8 characters
+
+### ⚙️ Miscellaneous Tasks
+
+- Bump version to 0.6.2
 ## [0.6.1] - 2025-12-12
 
 ### 🐛 Bug Fixes
