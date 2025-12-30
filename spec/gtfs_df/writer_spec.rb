@@ -3,6 +3,8 @@
 require "spec_helper"
 
 RSpec.describe GtfsDf::Writer do
+  require "csv"
+
   let(:fixture_zip) { File.expand_path("../fixtures/sample_gtfs.zip", __dir__) }
   let(:output_zip) { File.expand_path("../../fixtures/output_gtfs.zip", __dir__) }
   let(:filtered_zip) { File.expand_path("../../fixtures/filtered_gtfs.zip", __dir__) }
@@ -100,6 +102,59 @@ RSpec.describe GtfsDf::Writer do
         expect(File.exist?(nested_output)).to be true
       ensure
         FileUtils.rm_rf(File.expand_path("../../fixtures/nested", __dir__))
+      end
+    end
+  end
+
+  describe ".write_to_dir" do
+    let(:output_dir) { File.expand_path("../../fixtures/output_dir", __dir__) }
+
+    after do
+      FileUtils.rm_rf(output_dir)
+    end
+
+    it "exports a Feed to a directory" do
+      feed = GtfsDf::Reader.load_from_zip(fixture_zip)
+      GtfsDf::Writer.write_to_dir(feed, output_dir)
+      expect(File.directory?(output_dir)).to be true
+
+      input_files = GtfsDf::Feed::GTFS_FILES.select { |f| feed.send(f).is_a?(Polars::DataFrame) }.map { |f| "#{f}.txt" }
+      files_in_dir = Dir.entries(output_dir).select { |f| f.end_with?(".txt") }
+      expect(files_in_dir.sort).to match_array(input_files.sort)
+    end
+
+    it "converts times back to strings when writing with parse_times enabled" do
+      original_feed = GtfsDf::Reader.load_from_zip(fixture_zip, parse_times: true)
+      GtfsDf::Writer.write_to_dir(original_feed, output_dir)
+
+      # Read file directly to check format
+      stop_times_path = File.join(output_dir, "stop_times.txt")
+      content = File.read(stop_times_path)
+
+      # Check first five lines for time format
+      csv = CSV.parse(content, headers: true)
+      times = csv["arrival_time"].first(5)
+      times.each do |time|
+        expect(time).to match(/^\d{2}:\d{2}:\d{2}$/)
+      end
+    end
+
+    it "can keep time columns as seconds since midnight" do
+      original_feed = GtfsDf::Reader.load_from_zip(fixture_zip, parse_times: true)
+
+      # Flip the option right before writing to disk to keep the integer format
+      original_feed.parse_times = false
+      GtfsDf::Writer.write_to_dir(original_feed, output_dir)
+
+      # Read file directly to check format
+      stop_times_path = File.join(output_dir, "stop_times.txt")
+      content = File.read(stop_times_path)
+
+      # Check first five lines for the integer format
+      csv = CSV.parse(content, headers: true)
+      times = csv["arrival_time"].first(5)
+      times.each do |time|
+        expect(time).to match(/^\d{5}$/)
       end
     end
   end
