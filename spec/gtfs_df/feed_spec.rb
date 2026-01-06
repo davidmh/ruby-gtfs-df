@@ -40,6 +40,13 @@ RSpec.describe GtfsDf::Feed do
                             "start_date" => %w[20250101 20250101],
                             "end_date" => %w[20251231 20251231]})
   end
+  let(:calendar_dates_df) do
+    Polars::DataFrame.new({
+      "service_id" => %w[B],
+      "date" => %w[20250102],
+      "exception_type" => [1]
+    })
+  end
   let(:fare_attributes_df) do
     Polars::DataFrame.new({
       "agency_id" => %w[A B A B],
@@ -66,6 +73,7 @@ RSpec.describe GtfsDf::Feed do
       "trips" => trips_df,
       "stop_times" => stop_times_df,
       "calendar" => calendar_df,
+      "calendar_dates" => calendar_dates_df,
       "fare_attributes" => fare_attributes_df,
       "fare_rules" => fare_rules_df
     }
@@ -153,6 +161,7 @@ RSpec.describe GtfsDf::Feed do
           expect(filtered.calendar["service_id"].to_a).to eq(%w[A])
           expect(filtered.fare_attributes["fare_id"].to_a).to eq(%w[F1 F3])
           expect(filtered.fare_rules["fare_id"].to_a).to eq(%w[F1 F3])
+          expect(filtered.calendar_dates).to be(nil)
         end
 
         it "filtering from stop cascades" do
@@ -173,6 +182,7 @@ RSpec.describe GtfsDf::Feed do
           expect(filtered.calendar["service_id"].to_a).to eq(%w[A])
           expect(filtered.fare_attributes["fare_id"].to_a).to eq(%w[F1 F3])
           expect(filtered.fare_rules["fare_id"].to_a).to eq(%w[F1 F3])
+          expect(filtered.calendar_dates).to be(nil)
         end
 
         it "filtering from agency cascades" do
@@ -191,6 +201,7 @@ RSpec.describe GtfsDf::Feed do
           expect(filtered.calendar["service_id"].to_a).to eq(%w[A])
           expect(filtered.fare_attributes["fare_id"].to_a).to eq(%w[F1 F3])
           expect(filtered.fare_rules["fare_id"].to_a).to eq(%w[F1 F3])
+          expect(filtered.calendar_dates).to be(nil)
         end
 
         it "filtering from calendar cascades" do
@@ -210,6 +221,7 @@ RSpec.describe GtfsDf::Feed do
           expect(filtered.agency["agency_id"].to_a).to eq(%w[A])
           expect(filtered.fare_attributes["fare_id"].to_a).to eq(%w[F1 F3])
           expect(filtered.fare_rules["fare_id"].to_a).to eq(%w[F1 F3])
+          expect(filtered.calendar_dates).to be(nil)
         end
 
         # TODO: this expected behavior is not yet supported
@@ -230,6 +242,7 @@ RSpec.describe GtfsDf::Feed do
           expect(filtered.calendar["service_id"].to_a).to eq(%w[A])
           expect(filtered.fare_attributes["fare_id"].to_a).to eq(%w[F1 F3])
           expect(filtered.fare_rules["fare_id"].to_a).to eq(%w[F1 F3])
+          expect(filtered.calendar_dates).to be(nil)
         end
       end
 
@@ -249,6 +262,7 @@ RSpec.describe GtfsDf::Feed do
           expect(filtered.calendar["service_id"].to_a).to eq(%w[A B])
           expect(filtered.fare_attributes["fare_id"].to_a).to eq(%w[F1 F2 F3 F4])
           expect(filtered.fare_rules["fare_id"].to_a).to eq(%w[F1 F2 F3 F4])
+          expect(filtered.calendar_dates["service_id"].to_a).to eq(%w[B])
         end
 
         it "filtering from stop cascades to children only" do
@@ -265,6 +279,7 @@ RSpec.describe GtfsDf::Feed do
           expect(filtered.calendar["service_id"].to_a).to eq(%w[A B])
           expect(filtered.fare_attributes["fare_id"].to_a).to eq(%w[F1 F2 F3 F4])
           expect(filtered.fare_rules["fare_id"].to_a).to eq(%w[F1 F2 F3 F4])
+          expect(filtered.calendar_dates["service_id"].to_a).to eq(%w[B])
         end
 
         it "filtering from agency cascades to children only" do
@@ -283,6 +298,7 @@ RSpec.describe GtfsDf::Feed do
           # Not pruned
           expect(filtered.stops["stop_id"].to_a).to match_array(%w[S1 S2 S3 S4 S5 S6])
           expect(filtered.calendar["service_id"].to_a).to eq(%w[A B])
+          expect(filtered.calendar_dates["service_id"].to_a).to eq(%w[B])
         end
 
         it "filtering from calendar cascades to children only" do
@@ -302,6 +318,7 @@ RSpec.describe GtfsDf::Feed do
           expect(filtered.agency["agency_id"].to_a).to eq(%w[A B])
           expect(filtered.fare_attributes["fare_id"].to_a).to eq(%w[F1 F2 F3 F4])
           expect(filtered.fare_rules["fare_id"].to_a).to eq(%w[F1 F2 F3 F4])
+          expect(filtered.calendar_dates["service_id"].to_a).to eq(%w[B])
         end
       end
     end
