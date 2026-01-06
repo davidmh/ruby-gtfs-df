@@ -172,17 +172,17 @@ module GtfsDf
       filtered
     end
 
-    # Traverses the grah to prune unreferenced entities from child dataframes
+    # Traverses the graph to prune unreferenced entities from child dataframes
     # based on parent relationships. See GtfsDf::Graph::STOP_NODES
     def prune!(root, filtered, filter_only_children: false)
       seen_edges = Set.new
-      maybe_digraph = filter_only_children ? graph : graph.to_undirected
+      rerooted_graph = filter_only_children ? graph : Graph.with_traversal_from(root)
 
       queue = [root]
 
       while queue.length > 0
         parent_node_id = queue.shift
-        maybe_digraph.adj[parent_node_id].each do |child_node_id, attrs|
+        rerooted_graph.adj[parent_node_id].each do |child_node_id, attrs|
           edge = edge_id(parent_node_id, child_node_id)
 
           next if seen_edges.include?(edge)
@@ -243,8 +243,7 @@ module GtfsDf
     end
 
     def edge_id(parent, child)
-      # Alphabetize to make sure this works with undirected graph
-      [parent, child].sort.join("-")
+      [parent, child].join("-")
     end
   end
 end
