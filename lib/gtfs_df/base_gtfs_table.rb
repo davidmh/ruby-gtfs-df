@@ -15,6 +15,10 @@ module GtfsDf
           df = Polars.read_csv(input, infer_schema_length: 0, encoding: "utf8-lossy")
             .rename(->(col) { col.strip })
 
+          # Strip out empty lines. Unfortunately read_csv does not support the drop_empty_rows
+          # option right now.
+          df = df.filter(Polars.all_horizontal(Polars.all.is_null).is_not)
+
           dtypes = self.class::SCHEMA.slice(*df.columns)
           df
             .with_columns(dtypes.keys.map do |col|
