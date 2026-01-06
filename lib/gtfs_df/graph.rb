@@ -73,7 +73,7 @@ module GtfsDf
         ]}],
         # Self-referential edge: stops can reference parent stations (location_type=1)
         ["parent_stations", "stops", {dependencies: [
-          {"stops" => "parent_station", "parent_stations" => "stop_id"}
+          {"stops" => "parent_station", "parent_stations" => "stop_id", :allow_null => true}
         ]}],
         ["stops", "transfers", {dependencies: [
           {"stops" => "stop_id", "transfers" => "from_stop_id"},
@@ -165,6 +165,23 @@ module GtfsDf
         g.add_edge(from, to, **attrs)
       end
       g
+    end
+
+    # Adds a "backwards" path along the graph from the root node
+    # This can ensure we can traverse from root -> edges, then back along
+    # the regular direction of the graph
+    def self.with_traversal_from(root)
+      new_graph = build
+
+      undirected = new_graph.to_undirected
+      undirected.each_bfs_edge(root) do |node, child_node|
+        unless new_graph.has_edge?(node, child_node)
+          attrs = new_graph.get_edge_data(child_node, node)
+          new_graph.add_edge(node, child_node, **attrs)
+        end
+      end
+
+      new_graph
     end
   end
 end
