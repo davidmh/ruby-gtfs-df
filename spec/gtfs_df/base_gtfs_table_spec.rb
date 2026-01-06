@@ -38,5 +38,13 @@ RSpec.describe GtfsDf::BaseGtfsTable do
       expect(schema.df["pickup_type"].to_a).to eq(["1"])
       expect(schema.df["drop_off_type"].to_a).to eq([nil])
     end
+
+    it "ignores extraneous newlines" do
+      stop_times_path =
+        File.expand_path("../fixtures/stop_times_with_extra_newlines.txt", __dir__)
+
+      schema = GtfsDf::Schema::StopTimes.new(stop_times_path)
+      expect(schema.df.size).to be(3)
+    end
   end
 end

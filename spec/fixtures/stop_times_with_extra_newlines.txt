@@ -1,0 +1,8 @@
+trip_id,stop_id,stop_sequence
+
+trip1,1,0
+
+trip2,1,1
+
+trip3,1,1
+
