@@ -213,6 +213,9 @@ module GtfsDf
             parent_col = dep[parent_node_id]
             child_col = dep[child_node_id]
             allow_null = !!dep[:allow_null]
+            allow_unreferenced = !!dep[:child_unreferenced]
+
+            next if allow_unreferenced
 
             next unless parent_col && child_col &&
               parent_df.columns.include?(parent_col) && child_df.columns.include?(child_col)
