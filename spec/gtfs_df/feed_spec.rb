@@ -2,20 +2,14 @@ require "spec_helper"
 
 RSpec.describe GtfsDf::Feed do
   let(:agency_df) do
-    Polars::DataFrame.new({"agency_id" => ["A"],
-                            "agency_name" => ["Test Agency"],
-                            "agency_url" => ["http://agency"],
-                            "agency_timezone" => ["America/Chicago"]})
-  end
-  let(:stops_df) do
-    Polars::DataFrame.new({"stop_id" => %w[S1 S2],
-                            "stop_name" => %w[Stop1 Stop2],
-                            "stop_lat" => %w[0 1],
-                            "stop_lon" => %w[0 1]})
+    Polars::DataFrame.new({"agency_id" => ["A", "B"],
+                            "agency_name" => ["Test A", "Test B"],
+                            "agency_url" => ["http://agencyA", "http://agencyB"],
+                            "agency_timezone" => ["America/Chicago", "America/Chicago"]})
   end
   let(:routes_df) do
     Polars::DataFrame.new({"route_id" => %w[1 2],
-                            "agency_id" => %w[A A],
+                            "agency_id" => %w[A B],
                             "route_short_name" => %w[A B]})
   end
   let(:trips_df) do
@@ -23,10 +17,22 @@ RSpec.describe GtfsDf::Feed do
                             "route_id" => %w[1 2],
                             "service_id" => %w[A B]})
   end
+  # S5 is the parent station for S1
+  # S6 is the parent station for S4
+  let(:stops_df) do
+    Polars::DataFrame.new({"stop_id" => %w[S1 S2 S3 S4 S5 S6],
+                            "stop_name" => %w[Stop1 Stop2 Stop3 Stop4 Station1 Station2],
+                            "stop_lat" => %w[0 1 2 3 0 0],
+                            "stop_lon" => %w[0 1 2 3 0 0],
+                            "parent_station" => ["S5", nil, nil, "S6", nil, nil],
+                            "location_type" => ["0", nil, "0", "0", "1", "1"]})
+  end
+  # Trip 1 visits stops 1,2,3
+  # Trip 2 visits stops 2,4
   let(:stop_times_df) do
-    Polars::DataFrame.new({"trip_id" => %w[t1 t2],
-                            "stop_id" => %w[S1 S2],
-                            "stop_sequence" => [1, 1]})
+    Polars::DataFrame.new({"trip_id" => %w[t1 t1 t1 t2 t2],
+                            "stop_id" => %w[S1 S2 S3 S2 S4],
+                            "stop_sequence" => [1, 2, 3, 1, 2]})
   end
   let(:calendar_df) do
     Polars::DataFrame.new({"service_id" => %w[A B],
@@ -116,35 +122,6 @@ RSpec.describe GtfsDf::Feed do
     end
 
     describe "filtering through the graph" do
-      let(:agency_df) do
-        Polars::DataFrame.new({"agency_id" => ["A", "B"],
-                                "agency_name" => ["Test A", "Test B"],
-                                "agency_url" => ["http://agencyA", "http://agencyB"],
-                                "agency_timezone" => ["America/Chicago", "America/Chicago"]})
-      end
-      let(:routes_df) do
-        Polars::DataFrame.new({"route_id" => %w[1 2],
-                                "agency_id" => %w[A B],
-                                "route_short_name" => %w[A B]})
-      end
-      # S5 is the parent station for S1
-      # S6 is the parent station for S4
-      let(:stops_df) do
-        Polars::DataFrame.new({"stop_id" => %w[S1 S2 S3 S4 S5 S6],
-                                "stop_name" => %w[Stop1 Stop2 Stop3 Stop4 Station1 Station2],
-                                "stop_lat" => %w[0 1 2 3 0 0],
-                                "stop_lon" => %w[0 1 2 3 0 0],
-                                "parent_station" => ["S5", nil, nil, "S6", nil, nil],
-                                "location_type" => ["0", nil, "0", "0", "1", "1"]})
-      end
-      # Trip 1 visits stops 1,2,3
-      # Trip 2 visits stops 2,4
-      let(:stop_times_df) do
-        Polars::DataFrame.new({"trip_id" => %w[t1 t1 t1 t2 t2],
-                                "stop_id" => %w[S1 S2 S3 S2 S4],
-                                "stop_sequence" => [1, 2, 3, 1, 2]})
-      end
-
       context "when filter_only_children = false" do
         it "filtering from trips cascades" do
           # We consider trips the "atomic unit" of GTFS
