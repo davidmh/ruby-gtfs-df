@@ -176,7 +176,7 @@ module GtfsDf
     # based on parent relationships. See GtfsDf::Graph::STOP_NODES
     def prune!(root, filtered, filter_only_children: false)
       seen_edges = Set.new
-      rerooted_graph = filter_only_children ? graph : Graph.with_traversal_from(root)
+      rerooted_graph = Graph.build(bidirectional: !filter_only_children)
 
       queue = [root]
 
@@ -208,6 +208,13 @@ module GtfsDf
           next unless child_df && child_df.height > 0
 
           queue << child_node_id
+
+          # If the edge is weak (e.g. reverse edge of an optional relationship),
+          # we traverse to ensure connectivity but do NOT apply the filter.
+          if attrs[:type] == :weak
+            # puts "Skipping weak filter: #{edge}"
+            next
+          end
 
           attrs[:dependencies].each do |dep|
             parent_col = dep[parent_node_id]
