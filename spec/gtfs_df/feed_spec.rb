@@ -221,6 +221,48 @@ RSpec.describe GtfsDf::Feed do
           expect(filtered.fare_rules["fare_id"].to_a).to eq(%w[F1 F3])
           expect(filtered.calendar_dates).to be(nil)
         end
+
+        context "a one-agency feed" do
+          let(:agency_df) do
+            Polars::DataFrame.new({"agency_id" => ["A"],
+                                    "agency_name" => ["Test A"],
+                                    "agency_url" => ["http://agencyA"],
+                                    "agency_timezone" => ["America/Chicago"]})
+          end
+          let(:routes_df) do
+            Polars::DataFrame.new({"route_id" => %w[1 2],
+                                    "agency_id" => %w[A A],
+                                    "route_short_name" => %w[A B]})
+          end
+          let(:fare_attributes_df) do
+            Polars::DataFrame.new({
+              "fare_id" => %w[F1 F2 F3],
+              "price" => [1.0, 1.0, 1.0],
+              "currency_type" => %w[USD USD USD],
+              "payment_method" => %w[0 0 0],
+              "transfers" => %w[0 0 0]
+            })
+          end
+          let(:fare_rules_df) do
+            Polars::DataFrame.new({
+              "fare_id" => %w[F1 F1 F2],
+              "route_id" => ["1", "2", "2"]
+            })
+          end
+
+          it "filtering from route cascades" do
+            view = {"routes" => {"route_id" => %w[1]}}
+            filtered = feed.filter(view)
+
+            expect(filtered.routes["route_id"].to_a).to eq(%w[1])
+            expect(filtered.agency["agency_id"].to_a).to eq(%w[A])
+            expect(filtered.calendar["service_id"].to_a).to eq(%w[A])
+            # F3 is considered global since there are no associated fare rules
+            expect(filtered.fare_rules["route_id"].to_a).to eq(%w[1])
+            expect(filtered.fare_attributes["fare_id"].to_a).to eq(%w[F1])
+            expect(filtered.calendar_dates).to be(nil)
+          end
+        end
       end
 
       context "when filter_only_children = true" do
