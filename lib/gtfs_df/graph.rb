@@ -42,8 +42,6 @@ module GtfsDf
 
     # Returns a directed graph of GTFS file dependencies
     # allow_null: keep null values in the child dataframe
-    # parent_unreferenced: keep parent not be referenced by their children
-    # child_unreferenced: keep children not referenced by their child
     def self.build
       g = NetworkX::DiGraph.new
       NODES.keys.each { |node| g.add_node(node) }
@@ -92,7 +90,7 @@ module GtfsDf
           {"trips" => "shape_id", "shapes" => "shape_id"}
         ]}],
         ["trips", "frequencies", {dependencies: [
-          {"trips" => "trip_id", "frequencies" => "trip_id", :parent_unreferenced => true}
+          {"trips" => "trip_id", "frequencies" => "trip_id"}
         ]}],
 
         # --- GTFS Extensions ---
@@ -168,47 +166,6 @@ module GtfsDf
         g.add_edge(from, to, **attrs)
       end
       g
-    end
-
-    # Adds a "backwards" path along the graph from the root node
-    # This can ensure we can traverse from root -> edges, then back along
-    # the regular direction of the graph
-    def self.with_traversal_from(root)
-      new_graph = build
-
-      seen_edges = Set.new
-      queue = [root]
-      undirected = new_graph.to_undirected
-
-      while queue.length > 0
-        parent_node = queue.shift
-        undirected.adj[parent_node].keys.each do |child_node|
-          edge_id = [parent_node, child_node].join("-")
-          if seen_edges.include?(edge_id)
-            next
-          end
-          seen_edges.add(edge_id)
-          queue << child_node
-
-          unless new_graph.has_edge?(parent_node, child_node)
-            attrs = new_graph.get_edge_data(child_node, parent_node)
-
-            # Flip attrs
-            dependencies = attrs[:dependencies].map do |dep|
-              if dep[:parent_unreferenced]
-                dep.delete(:parent_unreferenced)
-                dep[:child_unreferenced] = true
-              end
-              dep
-            end
-            attrs[:dependencies] = dependencies
-
-            new_graph.add_edge(parent_node, child_node, **attrs)
-          end
-        end
-      end
-
-      new_graph
     end
   end
 end

@@ -176,78 +176,91 @@ module GtfsDf
     # based on parent relationships. See GtfsDf::Graph::STOP_NODES
     def prune!(root, filtered, filter_only_children: false)
       seen_edges = Set.new
-      rerooted_graph = filter_only_children ? graph : Graph.with_traversal_from(root)
 
       queue = [root]
 
       while queue.length > 0
         parent_node_id = queue.shift
-        rerooted_graph.adj[parent_node_id].each do |child_node_id, attrs|
-          edge = edge_id(parent_node_id, child_node_id)
+        # Prune edges from the node to its children
+        graph.adj[parent_node_id].each do |child_node_id, attrs|
+          prune_edge(parent_node_id, child_node_id, attrs, queue, seen_edges, filtered)
+        end
 
-          next if seen_edges.include?(edge)
-          seen_edges.add(edge)
-
-          parent_node = Graph::NODES[parent_node_id]
-          child_node = Graph::NODES[child_node_id]
-          parent_df = filtered[parent_node.fetch(:file)]
-          next unless parent_df
-
-          child_df = filtered[child_node.fetch(:file)]
-          # Certain nodes are pre-filtered because they reference only
-          # a piece of the dataframe
-          filter_attrs = child_node[:filter_attrs]
-          if filter_attrs && child_df.columns.include?(filter_attrs.fetch(:filter_col))
-            filter = filter_attrs.fetch(:filter)
-            # Temporarily remove rows that do not match node filter criteria to process them
-            # separately (e.g., when filtering stops, parent stations that should be preserved
-            # regardless of direct references)
-            saved_vals = child_df.filter(filter.is_not)
-            child_df = child_df.filter(filter)
+        # If not filtering only children, we also need to prune edges from the node
+        # to its predecessors
+        unless filter_only_children
+          graph.pred[parent_node_id].each do |pred_node_id, attrs|
+            prune_edge(parent_node_id, pred_node_id, attrs, queue, seen_edges, filtered)
           end
-          next unless child_df && child_df.height > 0
+        end
+      end
+    end
 
-          queue << child_node_id
+    def prune_edge(u_id, v_id, attrs, queue, seen_edges, filtered)
+      edge = edge_id(u_id, v_id)
 
-          attrs[:dependencies].each do |dep|
-            parent_col = dep[parent_node_id]
-            child_col = dep[child_node_id]
-            allow_null = !!dep[:allow_null]
-            allow_unreferenced = !!dep[:child_unreferenced]
+      return if seen_edges.include?(edge)
+      seen_edges.add(edge)
 
-            next if allow_unreferenced
+      node_u = Graph::NODES[u_id]
+      node_v = Graph::NODES[v_id]
+      u_df = filtered[node_u.fetch(:file)]
+      return unless node_u
 
-            next unless parent_col && child_col &&
-              parent_df.columns.include?(parent_col) && child_df.columns.include?(child_col)
+      v_df = filtered[node_v.fetch(:file)]
+      # Certain nodes are pre-filtered because they reference only
+      # a piece of the dataframe
+      filter_attrs = node_v[:filter_attrs]
+      if filter_attrs && v_df.columns.include?(filter_attrs.fetch(:filter_col))
+        filter = filter_attrs.fetch(:filter)
+        # Temporarily remove rows that do not match node filter criteria to process them
+        # separately (e.g., when filtering stops, parent stations that should be preserved
+        # regardless of direct references)
+        saved_vals = v_df.filter(filter.is_not)
+        v_df = v_df.filter(filter)
+      end
+      return unless v_df && v_df.height > 0
 
-            # Get valid values from parent
-            valid_values = parent_df[parent_col].to_a.uniq.compact
+      queue << v_id
 
-            # Annoying special case to make sure that if we have a calendar with exceptions,
-            # the calendar_dates file doesn't end up pruning other files
-            if parent_node_id == "calendar_dates" && parent_col == "service_id" &&
-                filtered["calendar"]
-              valid_values = (valid_values + calendar["service_id"].to_a).uniq
-            end
+      attrs[:dependencies].each do |dep|
+        u_col = dep[u_id]
+        v_col = dep[v_id]
+        allow_null = !!dep[:allow_null]
 
-            # Filter child to only include rows that reference valid parent values
-            before = child_df.height
-            filter = Polars.col(child_col).is_in(valid_values)
-            if allow_null
-              filter = (filter | Polars.col(child_col).is_null)
-            end
-            child_df = child_df.filter(filter)
-            changed = child_df.height < before
+        # TODO: I wonder if this should just be another annoying
+        # special case instead of having to add a new dependency property
+        next if u_id == "frequencies" && v_id == "trips"
 
-            # If we removed a part of the child_df earlier, concat it back on
-            if saved_vals
-              child_df = Polars.concat([child_df, saved_vals], how: "vertical")
-            end
+        next unless u_col && v_col &&
+          u_df.columns.include?(u_col) && v_df.columns.include?(v_col)
 
-            if changed
-              filtered[child_node.fetch(:file)] = child_df
-            end
-          end
+        # Get valid values from parent
+        valid_values = u_df[u_col].to_a.uniq.compact
+
+        # Annoying special case to make sure that if we have a calendar with exceptions,
+        # the calendar_dates file doesn't end up pruning other files
+        if u_id == "calendar_dates" && u_col == "service_id" &&
+            filtered["calendar"]
+          valid_values = (valid_values + calendar["service_id"].to_a).uniq
+        end
+
+        # Filter child to only include rows that reference valid parent values
+        before = v_df.height
+        filter = Polars.col(v_col).is_in(valid_values)
+        if allow_null
+          filter = (filter | Polars.col(v_col).is_null)
+        end
+        v_df = v_df.filter(filter)
+        changed = v_df.height < before
+
+        # If we removed a part of the child_df earlier, concat it back on
+        if saved_vals
+          v_df = Polars.concat([v_df, saved_vals], how: "vertical")
+        end
+
+        if changed
+          filtered[node_v.fetch(:file)] = v_df
         end
       end
     end
