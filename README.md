@@ -35,6 +35,9 @@ feed = GtfsDf::Reader.load_from_zip('path/to/gtfs.zip')
 # Or, load from a directory
 feed = GtfsDf::Reader.load_from_dir('path/to/gtfs_dir')
 
+# Parse times as seconds since midnight instead of string
+feed = GtfsDf::Reader.load_from_dir('path/to/gtfs_dir', parse_times: true)
+
 # Access dataframes for each GTFS file
 puts feed.agency.head
 puts feed.routes.head
@@ -71,11 +74,25 @@ When you filter by a field, the library automatically:
 
 For example, filtering by `agency_id` will automatically filter routes, trips, stop_times, and stops to only include data for that agency.
 
+By default gtfs_df treats trips as the atomic unit of GTFS. Therefore, if we
+filter to one stop referenced by TripA, we will preserve _all stops_ referenced
+by TripA.
+
+To avoid this behavior, you can pass the `filter_only_children` param. In this case, only the children of the specified filter will be pruned and trip integrity will not be maintained. In the below example, stop 1 and related stop_times will be pruned.
+
+```ruby
+filtered_feed = feed.filter({ 'stop' => { 'stop_id' => ['1'] } }, filter_only_children: true)
+```
+
+
 ### Writing filtered feeds
 
 ```ruby
 # Write to a new zip file
 GtfsDf::Writer.write_to_zip(filtered_feed, 'output/filtered_gtfs.zip')
+
+# Write to a directory
+GtfsDf::Writer.write_to_dir(filtered_feed, 'output/filtered_gtfs')
 ```
 
 ### Example: Split feed by agency
