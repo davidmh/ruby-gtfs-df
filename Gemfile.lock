@@ -4,7 +4,7 @@ PATH
     gtfs_df (0.7.0)
       networkx (~> 0.4)
       polars-df (~> 0.22)
-      rubyzip (~> 2.3)
+      rubyzip (>= 2.3, < 4.0)
 
 GEM
   remote: https://gem.coop/
@@ -96,7 +96,7 @@ GEM
       rubocop (>= 1.75.0, < 2.0)
       rubocop-ast (>= 1.38.0, < 2.0)
     ruby-progressbar (1.13.0)
-    rubyzip (2.4.1)
+    rubyzip (3.2.2)
     solargraph (0.57.0)
       backport (~> 1.2)
       benchmark (~> 0.4)
