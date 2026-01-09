@@ -172,17 +172,17 @@ module GtfsDf
       filtered
     end
 
-    # Traverses the grah to prune unreferenced entities from child dataframes
+    # Traverses the graph to prune unreferenced entities from child dataframes
     # based on parent relationships. See GtfsDf::Graph::STOP_NODES
     def prune!(root, filtered, filter_only_children: false)
       seen_edges = Set.new
-      maybe_digraph = filter_only_children ? graph : graph.to_undirected
+      rerooted_graph = Graph.build(bidirectional: !filter_only_children)
 
       queue = [root]
 
       while queue.length > 0
         parent_node_id = queue.shift
-        maybe_digraph.adj[parent_node_id].each do |child_node_id, attrs|
+        rerooted_graph.adj[parent_node_id].each do |child_node_id, attrs|
           edge = edge_id(parent_node_id, child_node_id)
 
           next if seen_edges.include?(edge)
@@ -209,6 +209,13 @@ module GtfsDf
 
           queue << child_node_id
 
+          # If the edge is weak (e.g. reverse edge of an optional relationship),
+          # we traverse to ensure connectivity but do NOT apply the filter.
+          if attrs[:type] == :weak
+            # puts "Skipping weak filter: #{edge}"
+            next
+          end
+
           attrs[:dependencies].each do |dep|
             parent_col = dep[parent_node_id]
             child_col = dep[child_node_id]
@@ -219,6 +226,13 @@ module GtfsDf
 
             # Get valid values from parent
             valid_values = parent_df[parent_col].to_a.uniq.compact
+
+            # Annoying special case to make sure that if we have a calendar with exceptions,
+            # the calendar_dates file doesn't end up pruning other files
+            if parent_node_id == "calendar_dates" && parent_col == "service_id" &&
+                filtered["calendar"]
+              valid_values = (valid_values + calendar["service_id"].to_a).uniq
+            end
 
             # Filter child to only include rows that reference valid parent values
             before = child_df.height
@@ -243,8 +257,7 @@ module GtfsDf
     end
 
     def edge_id(parent, child)
-      # Alphabetize to make sure this works with undirected graph
-      [parent, child].sort.join("-")
+      [parent, child].join("-")
     end
   end
 end

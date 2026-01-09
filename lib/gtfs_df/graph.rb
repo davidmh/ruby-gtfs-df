@@ -41,7 +41,7 @@ module GtfsDf
     NODES = STANDARD_FILE_NODES.merge(STOP_NODES).freeze
 
     # Returns a directed graph of GTFS file dependencies
-    def self.build
+    def self.build(bidirectional: false)
       g = NetworkX::DiGraph.new
       NODES.keys.each { |node| g.add_node(node) }
 
@@ -53,15 +53,15 @@ module GtfsDf
         ]}],
         ["agency", "fare_attributes", {dependencies: [
           {"fare_attributes" => "agency_id",
-           "agency" => "agency_id"}
-        ]}],
+           "agency" => "agency_id", :allow_null => true}
+        ], optional: true}],
         ["fare_attributes", "fare_rules", {dependencies: [
           {"fare_attributes" => "fare_id",
            "fare_rules" => "fare_id"}
         ]}],
         ["routes", "fare_rules", {dependencies: [
           {"fare_rules" => "route_id", "routes" => "route_id", :allow_null => true}
-        ]}],
+        ], optional: true}],
         ["routes", "trips", {dependencies: [
           {"routes" => "route_id", "trips" => "route_id"}
         ]}],
@@ -73,12 +73,12 @@ module GtfsDf
         ]}],
         # Self-referential edge: stops can reference parent stations (location_type=1)
         ["parent_stations", "stops", {dependencies: [
-          {"stops" => "parent_station", "parent_stations" => "stop_id"}
+          {"stops" => "parent_station", "parent_stations" => "stop_id", :allow_null => true}
         ]}],
         ["stops", "transfers", {dependencies: [
           {"stops" => "stop_id", "transfers" => "from_stop_id"},
           {"stops" => "stop_id", "transfers" => "to_stop_id"}
-        ]}],
+        ], optional: true}],
         ["calendar", "trips", {dependencies: [
           {"trips" => "service_id", "calendar" => "service_id"}
         ]}],
@@ -86,11 +86,11 @@ module GtfsDf
           {"trips" => "service_id", "calendar_dates" => "service_id"}
         ]}],
         ["shapes", "trips", {dependencies: [
-          {"trips" => "shape_id", "shapes" => "shape_id"}
+          {"trips" => "shape_id", "shapes" => "shape_id", :allow_null => true}
         ]}],
         ["trips", "frequencies", {dependencies: [
           {"trips" => "trip_id", "frequencies" => "trip_id"}
-        ]}],
+        ], optional: true}],
 
         # --- GTFS Extensions ---
         ["stops", "fare_leg_join_rules",
@@ -163,6 +163,16 @@ module GtfsDf
 
       edges.each do |from, to, attrs|
         g.add_edge(from, to, **attrs)
+        if bidirectional
+          # When adding the reverse edge, if the relationship is optional (child is not required),
+          # mark the reverse edge as weak. This prevents empty child tables (e.g. fare_rules)
+          # from filtering parent tables (e.g. routes) into emptiness.
+          reverse_attrs = attrs.dup
+          if attrs[:optional]
+            reverse_attrs[:type] = :weak
+          end
+          g.add_edge(to, from, **reverse_attrs)
+        end
       end
       g
     end

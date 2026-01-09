@@ -2,20 +2,14 @@ require "spec_helper"
 
 RSpec.describe GtfsDf::Feed do
   let(:agency_df) do
-    Polars::DataFrame.new({"agency_id" => ["A"],
-                            "agency_name" => ["Test Agency"],
-                            "agency_url" => ["http://agency"],
-                            "agency_timezone" => ["America/Chicago"]})
-  end
-  let(:stops_df) do
-    Polars::DataFrame.new({"stop_id" => %w[S1 S2],
-                            "stop_name" => %w[Stop1 Stop2],
-                            "stop_lat" => %w[0 1],
-                            "stop_lon" => %w[0 1]})
+    Polars::DataFrame.new({"agency_id" => ["A", "B"],
+                            "agency_name" => ["Test A", "Test B"],
+                            "agency_url" => ["http://agencyA", "http://agencyB"],
+                            "agency_timezone" => ["America/Chicago", "America/Chicago"]})
   end
   let(:routes_df) do
     Polars::DataFrame.new({"route_id" => %w[1 2],
-                            "agency_id" => %w[A A],
+                            "agency_id" => %w[A B],
                             "route_short_name" => %w[A B]})
   end
   let(:trips_df) do
@@ -23,10 +17,22 @@ RSpec.describe GtfsDf::Feed do
                             "route_id" => %w[1 2],
                             "service_id" => %w[A B]})
   end
+  # S5 is the parent station for S1
+  # S6 is the parent station for S4
+  let(:stops_df) do
+    Polars::DataFrame.new({"stop_id" => %w[S1 S2 S3 S4 S5 S6],
+                            "stop_name" => %w[Stop1 Stop2 Stop3 Stop4 Station1 Station2],
+                            "stop_lat" => %w[0 1 2 3 0 0],
+                            "stop_lon" => %w[0 1 2 3 0 0],
+                            "parent_station" => ["S5", nil, nil, "S6", nil, nil],
+                            "location_type" => ["0", nil, "0", "0", "1", "1"]})
+  end
+  # Trip 1 visits stops 1,2,3
+  # Trip 2 visits stops 2,4
   let(:stop_times_df) do
-    Polars::DataFrame.new({"trip_id" => %w[t1 t2],
-                            "stop_id" => %w[S1 S2],
-                            "stop_sequence" => [1, 1]})
+    Polars::DataFrame.new({"trip_id" => %w[t1 t1 t1 t2 t2],
+                            "stop_id" => %w[S1 S2 S3 S2 S4],
+                            "stop_sequence" => [1, 2, 3, 1, 2]})
   end
   let(:calendar_df) do
     Polars::DataFrame.new({"service_id" => %w[A B],
@@ -40,6 +46,31 @@ RSpec.describe GtfsDf::Feed do
                             "start_date" => %w[20250101 20250101],
                             "end_date" => %w[20251231 20251231]})
   end
+  let(:calendar_dates_df) do
+    Polars::DataFrame.new({
+      "service_id" => %w[B],
+      "date" => %w[20250102],
+      "exception_type" => [1]
+    })
+  end
+  let(:fare_attributes_df) do
+    Polars::DataFrame.new({
+      "agency_id" => %w[A B A B],
+      "fare_id" => %w[F1 F2 F3 F4],
+      "price" => [1.0, 1.0, 1.0, 1.0],
+      "currency_type" => %w[USD USD USD USD],
+      "payment_method" => %w[0 0 0 0],
+      "transfers" => %w[0 0 0 0]
+    })
+  end
+  let(:fare_rules_df) do
+    # Fare rules with null route_id should filter when agencies are filtered
+    # Fare rules with present route_ids should also filter when routes are filtered
+    Polars::DataFrame.new({
+      "fare_id" => %w[F1 F2 F3 F4],
+      "route_id" => [nil, nil, "1", "2"]
+    })
+  end
   let(:feed_dfs) do
     {
       "agency" => agency_df,
@@ -47,7 +78,10 @@ RSpec.describe GtfsDf::Feed do
       "routes" => routes_df,
       "trips" => trips_df,
       "stop_times" => stop_times_df,
-      "calendar" => calendar_df
+      "calendar" => calendar_df,
+      "calendar_dates" => calendar_dates_df,
+      "fare_attributes" => fare_attributes_df,
+      "fare_rules" => fare_rules_df
     }
   end
   let(:feed) { described_class.new(feed_dfs) }
@@ -88,35 +122,6 @@ RSpec.describe GtfsDf::Feed do
     end
 
     describe "filtering through the graph" do
-      let(:agency_df) do
-        Polars::DataFrame.new({"agency_id" => ["A", "B"],
-                                "agency_name" => ["Test A", "Test B"],
-                                "agency_url" => ["http://agencyA", "http://agencyB"],
-                                "agency_timezone" => ["America/Chicago", "America/Chicago"]})
-      end
-      let(:routes_df) do
-        Polars::DataFrame.new({"route_id" => %w[1 2],
-                                "agency_id" => %w[A B],
-                                "route_short_name" => %w[A B]})
-      end
-      # S5 is the parent station for S1
-      # S6 is the parent station for S4
-      let(:stops_df) do
-        Polars::DataFrame.new({"stop_id" => %w[S1 S2 S3 S4 S5 S6],
-                                "stop_name" => %w[Stop1 Stop2 Stop3 Stop4 Station1 Station2],
-                                "stop_lat" => %w[0 1 2 3 0 0],
-                                "stop_lon" => %w[0 1 2 3 0 0],
-                                "parent_station" => ["S5", nil, nil, "S6", nil, nil],
-                                "location_type" => ["0", nil, "0", "0", "1", "1"]})
-      end
-      # Trip 1 visits stops 1,2,3
-      # Trip 2 visits stops 2,4
-      let(:stop_times_df) do
-        Polars::DataFrame.new({"trip_id" => %w[t1 t1 t1 t2 t2],
-                                "stop_id" => %w[S1 S2 S3 S2 S4],
-                                "stop_sequence" => [1, 2, 3, 1, 2]})
-      end
-
       context "when filter_only_children = false" do
         it "filtering from trips cascades" do
           # We consider trips the "atomic unit" of GTFS
@@ -131,6 +136,9 @@ RSpec.describe GtfsDf::Feed do
           expect(filtered.routes["route_id"].to_a).to eq(%w[1])
           expect(filtered.agency["agency_id"].to_a).to eq(%w[A])
           expect(filtered.calendar["service_id"].to_a).to eq(%w[A])
+          expect(filtered.fare_attributes["fare_id"].to_a).to eq(%w[F1 F3])
+          expect(filtered.fare_rules["fare_id"].to_a).to eq(%w[F1 F3])
+          expect(filtered.calendar_dates).to be(nil)
         end
 
         it "filtering from stop cascades" do
@@ -149,6 +157,9 @@ RSpec.describe GtfsDf::Feed do
           expect(filtered.routes["route_id"].to_a).to eq(%w[1])
           expect(filtered.agency["agency_id"].to_a).to eq(%w[A])
           expect(filtered.calendar["service_id"].to_a).to eq(%w[A])
+          expect(filtered.fare_attributes["fare_id"].to_a).to eq(%w[F1 F3])
+          expect(filtered.fare_rules["fare_id"].to_a).to eq(%w[F1 F3])
+          expect(filtered.calendar_dates).to be(nil)
         end
 
         it "filtering from agency cascades" do
@@ -165,6 +176,9 @@ RSpec.describe GtfsDf::Feed do
           # Remove unreferenced objects
           expect(filtered.stops["stop_id"].to_a).to match_array(%w[S1 S2 S3 S5])
           expect(filtered.calendar["service_id"].to_a).to eq(%w[A])
+          expect(filtered.fare_attributes["fare_id"].to_a).to eq(%w[F1 F3])
+          expect(filtered.fare_rules["fare_id"].to_a).to eq(%w[F1 F3])
+          expect(filtered.calendar_dates).to be(nil)
         end
 
         it "filtering from calendar cascades" do
@@ -182,6 +196,9 @@ RSpec.describe GtfsDf::Feed do
           expect(filtered.stops["stop_id"].to_a).to match_array(%w[S1 S2 S3 S5])
           expect(filtered.routes["route_id"].to_a).to eq(%w[1])
           expect(filtered.agency["agency_id"].to_a).to eq(%w[A])
+          expect(filtered.fare_attributes["fare_id"].to_a).to eq(%w[F1 F3])
+          expect(filtered.fare_rules["fare_id"].to_a).to eq(%w[F1 F3])
+          expect(filtered.calendar_dates).to be(nil)
         end
 
         # TODO: this expected behavior is not yet supported
@@ -200,40 +217,51 @@ RSpec.describe GtfsDf::Feed do
           expect(filtered.routes["route_id"].to_a).to eq(%w[1])
           expect(filtered.agency["agency_id"].to_a).to eq(%w[A])
           expect(filtered.calendar["service_id"].to_a).to eq(%w[A])
+          expect(filtered.fare_attributes["fare_id"].to_a).to eq(%w[F1 F3])
+          expect(filtered.fare_rules["fare_id"].to_a).to eq(%w[F1 F3])
+          expect(filtered.calendar_dates).to be(nil)
         end
 
-        it "keeps fare_rules with null route_id" do
-          fare_attributes_df = Polars::DataFrame.new({
-            "fare_id" => %w[F1 F2 F3],
-            "price" => [1.0, 1.0, 1.0],
-            "currency_type" => %w[USD USD USD],
-            "payment_method" => %w[0 0 0],
-            "transfers" => %w[0 0 0]
-          })
-          fare_rules_df = Polars::DataFrame.new({
-            "fare_id" => %w[F1 F2 F3],
-            "route_id" => ["1", "2", nil]
-          })
-
-          feed = described_class.new(
-            feed_dfs.merge({
-              "fare_attributes" => fare_attributes_df,
-              "fare_rules" => fare_rules_df
+        context "a one-agency feed" do
+          let(:agency_df) do
+            Polars::DataFrame.new({"agency_id" => ["A"],
+                                    "agency_name" => ["Test A"],
+                                    "agency_url" => ["http://agencyA"],
+                                    "agency_timezone" => ["America/Chicago"]})
+          end
+          let(:routes_df) do
+            Polars::DataFrame.new({"route_id" => %w[1 2],
+                                    "agency_id" => %w[A A],
+                                    "route_short_name" => %w[A B]})
+          end
+          let(:fare_attributes_df) do
+            Polars::DataFrame.new({
+              "fare_id" => %w[F1 F2 F3],
+              "price" => [1.0, 1.0, 1.0],
+              "currency_type" => %w[USD USD USD],
+              "payment_method" => %w[0 0 0],
+              "transfers" => %w[0 0 0]
             })
-          )
+          end
+          let(:fare_rules_df) do
+            Polars::DataFrame.new({
+              "fare_id" => %w[F1 F1 F2],
+              "route_id" => ["1", "2", "2"]
+            })
+          end
 
-          view = {"trips" => {"trip_id" => %w[t1]}}
-          filtered = feed.filter(view)
+          it "filtering from route cascades" do
+            view = {"routes" => {"route_id" => %w[1]}}
+            filtered = feed.filter(view)
 
-          # Sanity check routes
-          expect(filtered.routes["route_id"].to_a).to match_array(%w[1])
-
-          # F2 belongs to a removed route so it is filtered out. F3 is associated
-          # with no route so it does not.
-          expect(filtered.fare_rules["fare_id"].to_a).to match_array(%w[F1 F3])
-
-          # Now we filter to the referenced fare attributes
-          expect(filtered.fare_attributes["fare_id"].to_a).to match_array(%w[F1 F3])
+            expect(filtered.routes["route_id"].to_a).to eq(%w[1])
+            expect(filtered.agency["agency_id"].to_a).to eq(%w[A])
+            expect(filtered.calendar["service_id"].to_a).to eq(%w[A])
+            # F3 is considered global since there are no associated fare rules
+            expect(filtered.fare_rules["route_id"].to_a).to eq(%w[1])
+            expect(filtered.fare_attributes["fare_id"].to_a).to eq(%w[F1])
+            expect(filtered.calendar_dates).to be(nil)
+          end
         end
       end
 
@@ -251,6 +279,9 @@ RSpec.describe GtfsDf::Feed do
           expect(filtered.routes["route_id"].to_a).to eq(%w[1 2])
           expect(filtered.agency["agency_id"].to_a).to eq(%w[A B])
           expect(filtered.calendar["service_id"].to_a).to eq(%w[A B])
+          expect(filtered.fare_attributes["fare_id"].to_a).to eq(%w[F1 F2 F3 F4])
+          expect(filtered.fare_rules["fare_id"].to_a).to eq(%w[F1 F2 F3 F4])
+          expect(filtered.calendar_dates["service_id"].to_a).to eq(%w[B])
         end
 
         it "filtering from stop cascades to children only" do
@@ -265,6 +296,9 @@ RSpec.describe GtfsDf::Feed do
           expect(filtered.routes["route_id"].to_a).to eq(%w[1 2])
           expect(filtered.agency["agency_id"].to_a).to eq(%w[A B])
           expect(filtered.calendar["service_id"].to_a).to eq(%w[A B])
+          expect(filtered.fare_attributes["fare_id"].to_a).to eq(%w[F1 F2 F3 F4])
+          expect(filtered.fare_rules["fare_id"].to_a).to eq(%w[F1 F2 F3 F4])
+          expect(filtered.calendar_dates["service_id"].to_a).to eq(%w[B])
         end
 
         it "filtering from agency cascades to children only" do
@@ -277,10 +311,13 @@ RSpec.describe GtfsDf::Feed do
           expect(filtered.routes["route_id"].to_a).to eq(%w[1])
           expect(filtered.trips["trip_id"].to_a).to eq(%w[t1])
           expect(filtered.stop_times["stop_id"].to_a).to eq(%w[S1 S2 S3])
+          expect(filtered.fare_attributes["fare_id"].to_a).to eq(%w[F1 F3])
+          expect(filtered.fare_rules["fare_id"].to_a).to eq(%w[F1 F3])
 
           # Not pruned
           expect(filtered.stops["stop_id"].to_a).to match_array(%w[S1 S2 S3 S4 S5 S6])
           expect(filtered.calendar["service_id"].to_a).to eq(%w[A B])
+          expect(filtered.calendar_dates["service_id"].to_a).to eq(%w[B])
         end
 
         it "filtering from calendar cascades to children only" do
@@ -298,39 +335,9 @@ RSpec.describe GtfsDf::Feed do
           expect(filtered.stops["stop_id"].to_a).to match_array(%w[S1 S2 S3 S4 S5 S6])
           expect(filtered.routes["route_id"].to_a).to eq(%w[1 2])
           expect(filtered.agency["agency_id"].to_a).to eq(%w[A B])
-        end
-
-        it "keeps fare_rules with null route_id" do
-          fare_attributes_df = Polars::DataFrame.new({
-            "fare_id" => %w[F1 F2 F3],
-            "price" => [1.0, 1.0, 1.0],
-            "currency_type" => %w[USD USD USD],
-            "payment_method" => %w[0 0 0],
-            "transfers" => %w[0 0 0]
-          })
-          fare_rules_df = Polars::DataFrame.new({
-            "fare_id" => %w[F1 F2 F3],
-            "route_id" => ["1", "2", nil]
-          })
-
-          feed = described_class.new(
-            feed_dfs.merge({
-              "fare_attributes" => fare_attributes_df,
-              "fare_rules" => fare_rules_df
-            })
-          )
-
-          view = {"routes" => {"route_id" => %w[1]}}
-          filtered = feed.filter(view, filter_only_children: true)
-
-          expect(filtered.routes["route_id"].to_a).to match_array(%w[1])
-
-          # In this case, we keep all routes and fare_attributes
-          expect(filtered.fare_attributes["fare_id"].to_a).to match_array(%w[F1 F2 F3])
-
-          # F2 belongs to a removed route so it is filtered out. F3 is associated
-          # with no route so it does not.
-          expect(filtered.fare_rules["fare_id"].to_a).to match_array(%w[F1 F3])
+          expect(filtered.fare_attributes["fare_id"].to_a).to eq(%w[F1 F2 F3 F4])
+          expect(filtered.fare_rules["fare_id"].to_a).to eq(%w[F1 F2 F3 F4])
+          expect(filtered.calendar_dates["service_id"].to_a).to eq(%w[B])
         end
       end
     end
