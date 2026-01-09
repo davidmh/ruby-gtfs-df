@@ -4,17 +4,18 @@ PATH
     gtfs_df (0.7.0)
       networkx (~> 0.4)
       polars-df (~> 0.22)
-      rubyzip (~> 2.3)
+      rubyzip (>= 2.3, < 4.0)
 
 GEM
   remote: https://gem.coop/
   specs:
-    bigdecimal (3.3.1)
+    bigdecimal (4.0.1)
+    json (2.18.0)
     matrix (0.4.3)
     networkx (0.4.0)
       matrix (~> 0.4)
       rb_heap (~> 1.0)
-    optparse (0.8.0)
+    optparse (0.8.1)
     polars-df (0.23.0-aarch64-linux)
       bigdecimal
     polars-df (0.23.0-aarch64-linux-musl)
@@ -28,11 +29,12 @@ GEM
     polars-df (0.23.0-x86_64-linux-musl)
       bigdecimal
     rb_heap (1.1.0)
-    rubyzip (2.4.1)
+    rubyzip (3.2.2)
     unicode-display_width (3.2.0)
       unicode-emoji (~> 4.1)
-    unicode-emoji (4.1.0)
-    whirly (0.3.0)
+    unicode-emoji (4.2.0)
+    whirly (0.4.0)
+      json
       unicode-display_width (>= 1.1)
 
 PLATFORMS
