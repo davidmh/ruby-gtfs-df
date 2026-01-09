@@ -84,9 +84,27 @@ See [examples/split-by-agency](examples/split-by-agency) for a complete example 
 
 ## Development
 
-After checking out the repo, run `bin/setup` to install dependencies. Then, run `rake spec` to run the tests. You can also run `bin/console` for an interactive prompt that will allow you to experiment.
+### Environment
 
-To install this gem onto your local machine, run `bundle exec rake install`. To release a new version, update the version number in `version.rb`, and then run `bundle exec rake release`, which will create a git tag for the version, push git commits and the created tag, and push the `.gem` file to [rubygems.org](https://rubygems.org).
+This project manages its development environment with nix, specifically [devenv].
+
+After checking out the repo:
+
+- Install devenv: https://devenv.sh/getting-started/
+
+- To enable the environment you can either:
+    - Use [direnv] to enable the environment as soon as you enter the project's path.
+    - Enable it only when you needed by running: `devenv shell`
+
+- Run `bin/setup` to install the gem dependencies.
+
+### Tests
+
+Run `rake spec` to run the tests.
+
+### REPL
+
+You can also run `bin/console` for an interactive prompt that will allow you to experiment.
 
 ## Release process
 
@@ -101,13 +119,6 @@ To install this gem onto your local machine, run `bundle exec rake install`. To 
 
 Creates and pushes the git tag for the release. That will trigger the GitHub action: `.github/workflows/publish.yml` to publish to RubyGems.
 
-## TODO
-
-- [ ] Time parsing
-
-  Just like partridge, we should parse Time as seconds since midnight. There's a draft in `lib/gtfs_df/utils.rb` but it's not used anywhere.
-  I haven't figured out how to properly implement that with Polars.
-
 ## Contributing
 
 Bug reports and pull requests are welcome on GitHub at https://github.com/davidmh/ruby-gtfs_df.
@@ -120,3 +131,5 @@ The gem is available as open source under the terms of the [MIT License](https:/
 [Polars]: https://pola.rs/
 [ruby-polars]: https://github.com/ankane/ruby-polars
 [partridge]: https://github.com/remix/partridge
+[devenv]: https://devenv.sh
+[direnv]: https://direnv.net
