@@ -1,7 +1,7 @@
 PATH
   remote: .
   specs:
-    gtfs_df (0.7.0)
+    gtfs_df (0.8.0)
       networkx (~> 0.4)
       polars-df (~> 0.22)
       rubyzip (>= 2.3, < 4.0)
