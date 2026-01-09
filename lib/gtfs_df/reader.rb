@@ -14,8 +14,7 @@ module GtfsDf
         Zip::File.open(zip_path) do |zip_file|
           zip_file.each do |entry|
             next unless entry.file?
-            out_path = File.join(tmpdir, entry.name)
-            entry.extract(out_path)
+            entry.extract(destination_directory: tmpdir)
           end
         end
 

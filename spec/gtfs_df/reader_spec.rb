@@ -54,7 +54,7 @@ RSpec.describe GtfsDf::Reader do
       Dir.mktmpdir do |tmp_dir|
         Zip::File.open(zip_path) do |zipfile|
           zipfile.each { |entry|
-            entry.extract(File.join(tmp_dir, entry.name))
+            entry.extract(destination_directory: tmp_dir)
           }
         end
 
