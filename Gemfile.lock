@@ -53,7 +53,7 @@ GEM
       pry (>= 0.13, < 0.16)
     racc (1.8.1)
     rainbow (3.1.1)
-    rake (13.3.0)
+    rake (13.3.1)
     rake-compiler-dock (1.9.1)
     rb_heap (1.1.0)
     rb_sys (0.9.117)
@@ -148,7 +148,7 @@ DEPENDENCIES
   csv
   gtfs_df!
   pry-byebug
-  rake (~> 13.0)
+  rake (~> 13.3)
   rspec (~> 3.0)
   solargraph
   standard (~> 1.3)

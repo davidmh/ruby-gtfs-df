@@ -6,7 +6,7 @@ source "https://gem.coop"
 gemspec
 
 group :development, :test do
-  gem "rake", "~> 13.0"
+  gem "rake", "~> 13.3"
   gem "rspec", "~> 3.0"
   gem "pry-byebug"
   gem "csv"
