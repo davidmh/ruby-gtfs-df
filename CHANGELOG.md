@@ -1,3 +1,26 @@
+## [0.8.0] - 2026-01-09
+
+### 🐛 Bug Fixes
+
+- Ignore extra newlines when parsing csv
+- Bump minimum ruby version to 3.2.0
+- Fix fare_attributes filtering
+- Fix exceptions edge case
+- Replace dynamic graph traversal with bidirectional graph option
+
+### 📚 Documentation
+
+- Document dev environment
+- Clarify the actions made by the bump-version script
+- Update example transitive dependencies
+
+### ⚙️ Miscellaneous Tasks
+
+- Reduce the test run frequency
+- Update dependabot schedule
+- Consolidate test fixtures
+- Add test for additional fares case
+- Update readme
 ## [0.7.0] - 2025-12-30
 
 ### 🚀 Features
@@ -22,6 +45,7 @@
 ### ⚙️ Miscellaneous Tasks
 
 - Include the util helpers in the console and the test spec
+- Bump version to 0.7.0
 ## [0.6.2] - 2025-12-15
 
 ### 🐛 Bug Fixes
