@@ -110,10 +110,10 @@ You can also run `bin/console` for an interactive prompt that will allow you to 
 
 1. `bin/bump-version`
 
-- Bump the version in `lib/gtfs_df/version.rb`
-- Update the `CHANGELOG.md` using the git log since the last version
-- Create and push a new release branch with those changes
-- Create a PR for that release
+- Bumps the version in `lib/gtfs_df/version.rb`
+- Updates the `CHANGELOG.md` using the git log since the last version
+- Creates and push a new release branch with those changes
+- Creates a PR for that release
 
 2. `bin/create-tag`
 
