@@ -14,5 +14,5 @@ end
 
 group :development do
   gem "solargraph"
-  gem "standard", "~> 1.3"
+  gem "standard", "~> 1.52"
 end
