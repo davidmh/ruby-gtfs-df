@@ -4,7 +4,7 @@ PATH
     gtfs_df (0.8.0)
       networkx (~> 0.4)
       polars-df (~> 0.22)
-      rubyzip (>= 2.3, < 4.0)
+      rubyzip (>= 3.0, < 4.0)
 
 GEM
   remote: https://gem.coop/
