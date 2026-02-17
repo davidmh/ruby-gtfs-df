@@ -3,7 +3,7 @@ PATH
   specs:
     gtfs_df (0.9.0)
       networkx (~> 0.4)
-      polars-df (~> 0.22)
+      polars-df (~> 0.22, < 0.24)
       rubyzip (>= 3.0, < 4.0)
 
 GEM

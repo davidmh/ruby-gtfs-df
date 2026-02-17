@@ -32,7 +32,7 @@ Gem::Specification.new do |spec|
   spec.require_paths = ["lib"]
 
   spec.add_dependency "networkx", "~> 0.4"
-  spec.add_dependency "polars-df", "~> 0.22"
+  spec.add_dependency "polars-df", "~> 0.22", "< 0.24"
   spec.add_dependency "rubyzip", ">= 3.0", "< 4.0"
 
   # For more information and examples about making a new gem, check out our
