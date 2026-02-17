@@ -1,3 +1,12 @@
+## [0.9.0] - 2026-02-17
+
+### 🚀 Features
+
+- Add helper utilities
+
+### 🐛 Bug Fixes
+
+- [**breaking**] Bump rubyzip min version to 3.0
 ## [0.8.0] - 2026-01-09
 
 ### 🐛 Bug Fixes
@@ -21,6 +30,7 @@
 - Consolidate test fixtures
 - Add test for additional fares case
 - Update readme
+- Bump version to 0.8.0
 ## [0.7.0] - 2025-12-30
 
 ### 🚀 Features
