@@ -148,6 +148,32 @@ module GtfsDf
       self.class.new(filtered, parse_times: @parse_times)
     end
 
+    # Utility method that returns a hash of dataframes by file name
+    #
+    # @return [{file_name => dataframe}]
+    def by_dataframe_name
+      GTFS_FILES.filter_map do |file|
+        dataframe = send(file)
+        dataframe ? [file, dataframe] : nil
+      end.to_h
+    end
+
+    # Utility method for getting a dataframe, e.g. feed['agency']
+    #
+    # @param [string] file name
+    # @return [dataframe]
+    def [](file_name)
+      send(file_name)
+    end
+
+    # Utility method for setting a dataframe, e.g. feed['agency'] = new_dataframe
+    #
+    # @param [string] file name
+    # @value [dataframe] the new dataframe
+    def []=(file_name, value)
+      send("#{file_name}=", value)
+    end
+
     private
 
     def filter!(file, filters, filtered, filter_only_children: false)

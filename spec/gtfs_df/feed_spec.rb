@@ -694,4 +694,28 @@ RSpec.describe GtfsDf::Feed do
       ])
     end
   end
+
+  describe "#by_dataframe_name" do
+    it "returns a hash of dataframes by file_name" do
+      result = feed.by_dataframe_name
+      expect(result.keys).to match_array(["agency", "stops", "routes", "trips",
+        "stop_times", "calendar", "calendar_dates", "fare_attributes", "fare_rules"])
+      expect(result.values.first).to be_a(Polars::DataFrame)
+    end
+  end
+
+  describe "#[]" do
+    it "gets the corresponding dataframe" do
+      expect(feed["agency"]).to eq(agency_df)
+    end
+  end
+
+  describe "#[]=" do
+    it "sets the corresponding dataframe" do
+      other_agency_dataframe = Polars::DataFrame.new({"agency_id" => ["A"],
+                            "agency_name" => ["Test A"]})
+      feed["agency"] = other_agency_dataframe
+      expect(feed["agency"]).to eq(other_agency_dataframe)
+    end
+  end
 end
