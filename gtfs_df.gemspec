@@ -5,8 +5,8 @@ require_relative "lib/gtfs_df/version"
 Gem::Specification.new do |spec|
   spec.name = "gtfs_df"
   spec.version = GtfsDf::VERSION
-  spec.authors = ["David Mejorado"]
-  spec.email = ["david.mejorado@gmail.com"]
+  spec.authors = ["David Mejorado", "Brooke Angel"]
+  spec.email = ["david.mejorado@gmail.com", "brooke.nicole.angel@gmail.com"]
 
   spec.summary = "Manipulate GTFS feeds using DataFrames with Polars"
   spec.description = "A Ruby gem to load, filter, and manipulate GTFS (General Transit Feed Specification) feeds using DataFrames powered by Polars. Supports cascading filters that maintain referential integrity across related tables. NOTE: This gem is not ready for production use."
