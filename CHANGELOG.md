@@ -1,8 +1,17 @@
+## [0.9.2] - 2026-02-21
+
+### 📚 Documentation
+
+- Add Brooke to the list of authors
 ## [0.9.1] - 2026-02-17
 
 ### 🐛 Bug Fixes
 
 - Polars breaking change on latest release (#64)
+
+### ⚙️ Miscellaneous Tasks
+
+- Bump version to 0.9.1 (#65)
 ## [0.9.0] - 2026-02-17
 
 ### 🚀 Features
