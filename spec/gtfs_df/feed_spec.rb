@@ -119,6 +119,17 @@ RSpec.describe GtfsDf::Feed do
         expect(filtered.routes["route_id"].to_a).to eq(["1"])
         expect(filtered.trips["route_id"].to_a).to eq(["1"])
       end
+
+      it "can filter multiple tables" do
+        view = {"agency" => {"agency_id" => "A"},
+                "routes" => {"route_id" => "1"}}
+
+        filtered = feed.filter(view)
+
+        expect(filtered.agency["agency_id"].to_a).to eq(["A"])
+        expect(filtered.routes["route_id"].to_a).to eq(["1"])
+        expect(filtered.trips["route_id"].to_a).to eq(["1"])
+      end
     end
 
     describe "filtering through the graph" do

@@ -121,14 +121,14 @@ module GtfsDf
         # Trips are the atomic unit of GTFS, we will generate a new view
         # based on the set of trips that would be included for each invidual filter
         # and cascade changes from this view in order to retain referential integrity
-        trip_ids = nil
+        trip_ids = Polars::Series.new.alias("trip_id")
 
         view.each do |file, filters|
           new_filtered = filter!(file, filters, filtered.dup)
-          trip_ids = if trip_ids.nil?
+          trip_ids = if trip_ids.empty?
             new_filtered["trips"]["trip_id"]
           else
-            trip_ids & new_filtered["trips"]["trip_id"]
+            trip_ids.filter(trip_ids.is_in(new_filtered["trips"]["trip_id"]))
           end
         end
 
