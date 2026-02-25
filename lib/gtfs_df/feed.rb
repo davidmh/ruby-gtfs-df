@@ -133,7 +133,7 @@ module GtfsDf
         end
 
         if trip_ids
-          filtered = filter!("trips", {"trip_id" => trip_ids.to_a}, filtered.dup)
+          filtered = filter!("trips", {"trip_id" => trip_ids.implode}, filtered.dup)
         end
       end
 
@@ -181,7 +181,7 @@ module GtfsDf
         df = filtered[file]
 
         filters.each do |col, val|
-          df = if val.is_a?(Array)
+          df = if val.is_a?(Polars::Series) || val.is_a?(Array)
             df.filter(Polars.col(col).is_in(val))
           elsif val.respond_to?(:call)
             df.filter(val.call(Polars.col(col)))
@@ -251,18 +251,18 @@ module GtfsDf
               parent_df.columns.include?(parent_col) && child_df.columns.include?(child_col)
 
             # Get valid values from parent
-            valid_values = parent_df[parent_col].to_a.uniq.compact
+            valid_values = parent_df[parent_col].drop_nulls.unique
 
             # Annoying special case to make sure that if we have a calendar with exceptions,
             # the calendar_dates file doesn't end up pruning other files
             if parent_node_id == "calendar_dates" && parent_col == "service_id" &&
                 filtered["calendar"]
-              valid_values = (valid_values + calendar["service_id"].to_a).uniq
+              valid_values = Polars.concat([valid_values, calendar["service_id"]]).unique
             end
 
             # Filter child to only include rows that reference valid parent values
             before = child_df.height
-            filter = Polars.col(child_col).is_in(valid_values)
+            filter = Polars.col(child_col).is_in(valid_values.implode)
             if allow_null
               filter = (filter | Polars.col(child_col).is_null)
             end
