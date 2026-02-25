@@ -212,6 +212,49 @@ RSpec.describe GtfsDf::Feed do
           expect(filtered.calendar_dates).to be(nil)
         end
 
+        context "when trips have service_ids only in calendar_dates" do
+          let(:trips_df) do
+            Polars::DataFrame.new({
+              "trip_id" => %w[t1 t2],
+              "route_id" => %w[1 2],
+              "service_id" => %w[A calendar_dates_service]
+            })
+          end
+          let(:stop_times_df) do
+            Polars::DataFrame.new({
+              "trip_id" => %w[t1 t1 t2 t2],
+              "stop_id" => %w[S1 S2 S2 S3],
+              "stop_sequence" => [1, 2, 1, 2]
+            })
+          end
+          let(:calendar_dates_df) do
+            Polars::DataFrame.new({
+              "service_id" => %w[calendar_dates_service calendar_dates_service],
+              "date" => %w[20250304 20250427],
+              "exception_type" => [1, 1]
+            })
+          end
+
+          it "filtering all trips preserves calendar_dates-only trips and their routes" do
+            view = {"trips" => {"trip_id" => ->(_) { true }}}
+            filtered = feed.filter(view)
+
+            expect(filtered.calendar["service_id"].to_a).to eq(%w[A])
+            expect(filtered.calendar_dates["service_id"].unique.to_a).to eq(%w[calendar_dates_service])
+            expect(filtered.routes["route_id"].to_a).to match_array(%w[1 2])
+            expect(filtered.trips["trip_id"].to_a).to match_array(%w[t1 t2])
+          end
+
+          it "filtering from stops preserves calendar_dates-only trips" do
+            # S2 is visited by both t1 and t2
+            view = {"stops" => {"stop_id" => %w[S2]}}
+            filtered = feed.filter(view)
+
+            expect(filtered.trips["trip_id"].to_a).to match_array(%w[t1 t2])
+            expect(filtered.routes["route_id"].to_a).to match_array(%w[1 2])
+          end
+        end
+
         # TODO: this expected behavior is not yet supported
         xit "filtering from a parent station cascades" do
           # This stop is the station for trip 1. However, since we enter the graph
