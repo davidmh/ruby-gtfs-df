@@ -200,9 +200,17 @@ module GtfsDf
 
     # Traverses the graph to prune unreferenced entities from child dataframes
     # based on parent relationships. See GtfsDf::Graph::STOP_NODES
+    #
+    # The trips table has multiple parents (calendar, calendar_dates, routes,
+    # stop_times). We accumulate valid values from all of them and keep rows
+    # that match any parent, so trips referenced only via calendar_dates are
+    # not dropped when another edge is processed first.
     def prune!(root, filtered, filter_only_children: false)
       seen_edges = Set.new
       rerooted_graph = Graph.build(bidirectional: !filter_only_children)
+      trips_accumulated = {} # [child_col] => Polars::Series (unique values)
+      trips_allow_null = {} # [child_col] => true/false
+      trips_base_df = nil
 
       queue = [root]
 
@@ -245,7 +253,7 @@ module GtfsDf
           attrs[:dependencies].each do |dep|
             parent_col = dep[parent_node_id]
             child_col = dep[child_node_id]
-            allow_null = !!dep[:allow_null]
+            allow_null_flag = !!dep[:allow_null]
 
             next unless parent_col && child_col &&
               parent_df.columns.include?(parent_col) && child_df.columns.include?(child_col)
@@ -253,29 +261,48 @@ module GtfsDf
             # Get valid values from parent
             valid_values = parent_df[parent_col].drop_nulls.unique
 
-            # Annoying special case to make sure that if we have a calendar with exceptions,
-            # the calendar_dates file doesn't end up pruning other files
-            if parent_node_id == "calendar_dates" && parent_col == "service_id" &&
-                filtered["calendar"]
-              valid_values = Polars.concat([valid_values, calendar["service_id"]]).unique
-            end
+            if child_node_id == "trips" && (parent_node_id == "calendar" || parent_node_id == "calendar_dates")
+              # Calendar + calendar_dates both define service for the same trips, so we want
+              # union semantics across those two parents (a trip is valid if it appears in
+              # either).
+              #
+              # Here we accumulate valid service_ids across calendar/calendar_dates, but only
+              # within the pool of trips that are already reachable from structural parents.
+              key = child_col
+              trips_accumulated[key] = if trips_accumulated[key]
+                Polars.concat([trips_accumulated[key], valid_values]).unique
+              else
+                valid_values
+              end
+              trips_allow_null[key] = allow_null_flag
 
-            # Filter child to only include rows that reference valid parent values
-            before = child_df.height
-            filter = Polars.col(child_col).is_in(valid_values.implode)
-            if allow_null
-              filter = (filter | Polars.col(child_col).is_null)
-            end
-            child_df = child_df.filter(filter)
-            changed = child_df.height < before
+              # Determine the base pool of trips:
+              # - If we've already restricted trips via structural parents (routes,
+              #   stop_times, shapes, etc), use that as the base.
+              # - Otherwise, like when filtering directly on trips, use the current
+              #   trips dataframe.
+              trips_base_df ||= filtered[child_node.fetch(:file)]
+              next unless trips_base_df && trips_base_df.height > 0
 
-            # If we removed a part of the child_df earlier, concat it back on
-            if saved_vals
-              child_df = Polars.concat([child_df, saved_vals], how: "vertical")
-            end
+              conditions = trips_accumulated.map do |col, vals|
+                c = Polars.col(col).is_in(vals.implode)
+                c = (c | Polars.col(col).is_null) if trips_allow_null[col]
+                c
+              end
+              combined = conditions.reduce { |a, b| a | b }
+              filtered[child_node.fetch(:file)] = trips_base_df.filter(combined)
+            else
+              # Original single-edge logic for all other nodes
+              before = child_df.height
 
-            if changed
-              filtered[child_node.fetch(:file)] = child_df
+              cond = Polars.col(child_col).is_in(valid_values.implode)
+              cond = (cond | Polars.col(child_col).is_null) if allow_null_flag
+              child_df = child_df.filter(cond)
+
+              if child_df.height < before
+                child_df = Polars.concat([child_df, saved_vals], how: "vertical") if saved_vals
+                filtered[child_node.fetch(:file)] = child_df
+              end
             end
           end
         end
