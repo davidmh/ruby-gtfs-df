@@ -1,8 +1,23 @@
-## [0.9.2] - 2026-02-21
+## [0.9.3] - 2026-02-27
+
+### 🐛 Bug Fixes
+
+- Allow multiple filters
+- Refactor prune to keep caledar_dates-only dependencies
 
 ### 📚 Documentation
 
 - Add Brooke to the list of authors
+
+### 🧪 Testing
+
+- Ensure we don't drop trips and routes
+
+### ⚙️ Miscellaneous Tasks
+
+- Bump version to 0.9.2
+- Avoid converting series into arrays
+- Simplify trip pool reduction
 ## [0.9.1] - 2026-02-17
 
 ### 🐛 Bug Fixes
