@@ -208,8 +208,7 @@ module GtfsDf
     def prune!(root, filtered, filter_only_children: false)
       seen_edges = Set.new
       rerooted_graph = Graph.build(bidirectional: !filter_only_children)
-      trips_accumulated = {} # [child_col] => Polars::Series (unique values)
-      trips_allow_null = {} # [child_col] => true/false
+      accumulated_service_ids = Polars::Series.new("service_id", dtype: Polars::String)
       trips_base_df = nil
 
       queue = [root]
@@ -268,13 +267,7 @@ module GtfsDf
               #
               # Here we accumulate valid service_ids across calendar/calendar_dates, but only
               # within the pool of trips that are already reachable from structural parents.
-              key = child_col
-              trips_accumulated[key] = if trips_accumulated[key]
-                Polars.concat([trips_accumulated[key], valid_values]).unique
-              else
-                valid_values
-              end
-              trips_allow_null[key] = allow_null_flag
+              accumulated_service_ids = Polars.concat([accumulated_service_ids, valid_values]).unique
 
               # Determine the base pool of trips:
               # - If we've already restricted trips via structural parents (routes,
@@ -284,13 +277,9 @@ module GtfsDf
               trips_base_df ||= filtered[child_node.fetch(:file)]
               next unless trips_base_df && trips_base_df.height > 0
 
-              conditions = trips_accumulated.map do |col, vals|
-                c = Polars.col(col).is_in(vals.implode)
-                c = (c | Polars.col(col).is_null) if trips_allow_null[col]
-                c
-              end
-              combined = conditions.reduce { |a, b| a | b }
-              filtered[child_node.fetch(:file)] = trips_base_df.filter(combined)
+              filtered[child_node.fetch(:file)] = trips_base_df.filter(
+                Polars.col("service_id").is_in(accumulated_service_ids.implode)
+              )
             else
               # Original single-edge logic for all other nodes
               before = child_df.height
