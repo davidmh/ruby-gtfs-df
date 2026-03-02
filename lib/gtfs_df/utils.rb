@@ -6,53 +6,6 @@ module GtfsDf
     SECONDS_IN_HOUR = SECONDS_IN_MINUTE * 60
     SECONDS_IN_DAY = SECONDS_IN_HOUR * 24
 
-    # Parses a GTFS time string to seconds since midnight
-    #
-    # The input string is expected to be in the HH:MM:SS format (H:MM:SS is
-    # also accepted).
-    #
-    # The time is measured from "noon minus 12h" of the service day
-    # (effectively midnight except for days on which daylight savings time
-    # changes occur). For times occurring after midnight on the service day,
-    # enter the time as a value greater than 24:00:00 in HH:MM:SS.
-    #
-    # @example 14:30:00 for 2:30PM or
-    # 25:35:00 for 1:35AM on the next day.
-    #
-    # @param str String|Integer
-    # @return Integer|nil seconds since midnight, or nil if invalid
-    def parse_time(str)
-      return str if str.is_a?(Integer)
-      return nil if str.nil? || (str.respond_to?(:strip) && str.strip.empty?)
-
-      parts = str.to_s.split(":")
-      return nil unless parts.size == 3 && parts.all? { |p| p.match?(/^\d+$/) }
-
-      hours, mins, secs = parts.map(&:to_i)
-      hours * 3600 + mins * 60 + secs
-    rescue
-      nil
-    end
-
-    # Formats seconds since midnight as a GTFS time string (HH:MM:SS)
-    #
-    # Handles times greater than 24 hours for times that span past midnight.
-    #
-    # @param seconds Integer seconds since midnight
-    # @return String|nil time in HH:MM:SS format, or nil if invalid
-    def format_time(seconds)
-      return nil if seconds.nil?
-      return seconds if seconds.is_a?(String)
-
-      hours = seconds / SECONDS_IN_HOUR
-      minutes = (seconds % SECONDS_IN_HOUR) / SECONDS_IN_MINUTE
-      secs = seconds % SECONDS_IN_MINUTE
-
-      format("%02d:%02d:%02d", hours, minutes, secs)
-    rescue
-      nil
-    end
-
     # Converts a GTFS time string column to seconds since midnight
     #
     # Use this method with Polars DataFrames to convert time columns.
@@ -118,16 +71,9 @@ module GtfsDf
     #
     # @example 20180913 for September 13th, 2018.
     #
-    # @param str String
-    def parse_date(str)
-      return nil if str.nil? || str.strip.empty?
-      return nil unless str.match?(/^\d{8}$/)
-
-      begin
-        Date.strptime(str, "%Y%m%d")
-      rescue ArgumentError
-        nil
-      end
+    # @param col Polars::Expr
+    def parse_date(col)
+      col.str.strptime(Polars::Date, "%Y%m%d", strict: false)
     end
   end
 end
