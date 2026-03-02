@@ -50,7 +50,7 @@ RSpec.describe GtfsDf::Feed do
     Polars::DataFrame.new({
       "service_id" => %w[B],
       "date" => %w[20250102],
-      "exception_type" => [1]
+      "exception_type" => ["1"]
     })
   end
   let(:fare_attributes_df) do
@@ -770,6 +770,72 @@ RSpec.describe GtfsDf::Feed do
                             "agency_name" => ["Test A"]})
       feed["agency"] = other_agency_dataframe
       expect(feed["agency"]).to eq(other_agency_dataframe)
+    end
+  end
+
+  describe "service_dates" do
+    it "matches the fixtures" do
+      service_dates = feed.service_dates
+
+      # A whole year of service for each service id
+      expect(service_dates.height).to eq(730)
+
+      # Half from each
+      expect(service_dates.filter(
+        Polars.col("service_id").eq("A")
+      ).height).to eq(365)
+      expect(service_dates.filter(
+        Polars.col("service_id").eq("B")
+      ).height).to eq(365)
+
+      # An arbitrary date within that range should return both services
+      expect(service_dates.filter(
+        Polars.col("date").eq(Date.strptime("2025-12-29"))
+      )["service_id"].to_a).to match(%w[A B])
+    end
+
+    describe "calendar_dates additions" do
+      let(:calendar_dates_df) do
+        # Add one day of service for B on 2026-03-02
+        Polars::DataFrame.new({
+          "service_id" => %w[B],
+          "date" => %w[20260302],
+          "exception_type" => ["1"]
+        })
+      end
+
+      it "should respect calendar_dates additions" do
+        service_dates_for_b = feed.service_dates.filter(
+          Polars.col("service_id").eq("B")
+        )
+
+        # One extra day compared to the default fixture
+        expect(service_dates_for_b.height).to eq(366)
+
+        # That extra day should match the date from the exception added in this describe
+        expect(feed.service_dates.filter(
+          Polars.col("date").eq(Date.strptime("2026-03-02", "%Y-%m-%d"))
+        )["service_id"].unique.to_a).to match(["B"])
+      end
+    end
+
+    describe "calendar_dates subtractions" do
+      let(:calendar_dates_df) do
+        # Remove one day of service for B on 2025-01-02
+        Polars::DataFrame.new({
+          "service_id" => %w[B],
+          "date" => %w[20250102],
+          "exception_type" => ["2"]
+        })
+      end
+
+      it "should respect calendar_dates subtractions" do
+        service_dates_for_b = feed.service_dates.filter(
+          Polars.col("service_id").eq("B")
+        )
+
+        expect(service_dates_for_b.height).to eq(364)
+      end
     end
   end
 end
