@@ -214,9 +214,13 @@ module GtfsDf
         # 0 - Service is not available for Mondays in the date range.
         # https://gtfs.org/documentation/schedule/reference/#calendartxt
         #
-        # The whole date has service if at least one of the days has service.
-        filter_expr = dow_col_names.reduce(Polars.lit(false)) do |expr, dow_col_name|
-          expr | (Polars.col(dow_col_name) == "1")
+        # This filter will be applied to the expanded calendar dates, where the
+        # ranges become rows of individual dates, we need to ensure that each
+        # individual date matches the day of the week (DOW) before we check if
+        # it's enabled.
+        filter_expr = dow_col_names.each_with_index.reduce(Polars.lit(false)) do |expr, (dow_col_name, idx)|
+          # Polars weekday: Monday=1, Sunday=7
+          expr | ((Polars.col("date").dt.weekday == (idx + 1)) & (Polars.col(dow_col_name) == "1"))
         end
 
         services_by_date = expanded.filter(filter_expr).select("date", "service_id")
@@ -320,18 +324,19 @@ module GtfsDf
 
       # Group by week (ISO week, starting Monday)
       weekly_agg = daily_total
-        .sort("date")
-        .group_by_dynamic("date", every: "1w")
+        .with_columns(Polars.col("date").dt.truncate("1w").alias("week_start"))
+        .group_by("week_start")
         .agg(Polars.col("count").sum.alias("total_trips"))
 
       # Get the week with max trips
       # Sort by total_trips descending, then date ascending to pick the earliest date in case of a tie
-      best_week = weekly_agg.sort(["total_trips", "date"], reverse: [true, false]).head(1)
+      sorted_weeks = weekly_agg.sort(["total_trips", "week_start"], reverse: [true, false])
+      best_week = sorted_weeks.head(1)
 
       return nil if best_week.height == 0
 
       # Return the start date of the busiest week
-      best_week["date"][0]
+      best_week["week_start"][0]
     end
 
     private
