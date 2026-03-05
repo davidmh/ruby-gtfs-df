@@ -55,5 +55,12 @@ module GtfsDf
     def dataframe
       @df
     end
+
+    def self.empty_dataframe
+      Polars::DataFrame.new(
+        const_get(:REQUIRED_FIELDS).map { |field| [field, []] }.to_h,
+        schema_overrides: const_get(:SCHEMA)
+      )
+    end
   end
 end

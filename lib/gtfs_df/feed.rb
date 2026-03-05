@@ -257,16 +257,58 @@ module GtfsDf
       cached_service_dates = service_dates
       return nil if cached_service_dates.nil? || cached_service_dates.height == 0
 
-      # Count trips per service_id
-      trip_counts = @trips.group_by("service_id").agg(Polars.len.alias("trips_count"))
+      # This expression builds from the dataframe returned by frequency based
+      # trip counts, defaulting to 1 for the trips that don't have an entry in
+      # the frequencies table. We're defining the expression here just to
+      # remove some noise from the join below.
+      trip_size = Polars.coalesce("freq_count", Polars.lit(1)).alias("trip_size")
+
+      # Count trips per service_id, considering the possible size they may have
+      # from the frequencies table.
+      trip_counts = @trips
+        .join(frequency_based_trip_counts, on: "trip_id", how: "left")
+        .group_by("service_id")
+        .agg(trip_size.sum.alias("trip_count"))
 
       # Join to services to get trips per date
-      daily_trips = cached_service_dates.join(trip_counts, on: "service_id", how: "left").with_columns(
-        Polars.col("trips_count").fill_null(0)
-      )
+      daily_trips = cached_service_dates
+        .join(trip_counts, on: "service_id", how: "left")
+        .with_columns(Polars.col("trip_count").fill_null(0))
 
       # Sum trips per date
-      daily_trips.group_by("date").agg(Polars.col("trips_count").sum.alias("count"))
+      daily_trips.group_by("date").agg(Polars.col("trip_count").sum.alias("count"))
+    end
+
+    # Returns a DataFrame of trip counts from the frequencies table
+    # Columns: [trip_id, freq_count]
+    #
+    # @return [Polars::DataFrame]
+    def frequency_based_trip_counts
+      # If the feed was initialized with the parse_times flag, we already have
+      # seconds since midnight in these columns, otherwise we need to convert
+      # them first, so we can get the duration in seconds
+      end_time_seconds_col, start_time_seconds_col = if @parse_times
+        [Polars.col("end_time"), Polars.col("start_time")]
+      else
+        [
+          GtfsDf::Utils.as_seconds_since_midnight("end_time"),
+          GtfsDf::Utils.as_seconds_since_midnight("start_time")
+        ]
+      end
+
+      duration_seconds = (end_time_seconds_col - start_time_seconds_col).alias("duration_seconds")
+      count = (duration_seconds / Polars.col("headway_secs")).floor.sum.alias("freq_count")
+
+      # The frequencies table is optional, we default to an empty dataframe to
+      # remove friction in the join with trips.
+      if @frequencies
+        @frequencies.group_by("trip_id").agg(count).select("trip_id", "freq_count")
+      else
+        Polars::DataFrame.new(
+          {"trip_id" => [], "freq_count" => []},
+          schema: {"trip_id" => Polars::String, "freq_count" => Polars::Float64}
+        )
+      end
     end
 
     # Identifies the start date of the busiest week in the feed by trip count.
