@@ -1,3 +1,14 @@
+## [0.10.0] - 2026-03-06
+
+### 🚀 Features
+
+- Date parsing utility
+- Calendar-based utilities
+- Consider frequencies when counting trips
+
+### 🐛 Bug Fixes
+
+- Service dates and busiest week fixes
 ## [0.9.3] - 2026-02-27
 
 ### 🐛 Bug Fixes
@@ -18,6 +29,7 @@
 - Bump version to 0.9.2
 - Avoid converting series into arrays
 - Simplify trip pool reduction
+- Bump version to 0.9.3
 ## [0.9.1] - 2026-02-17
 
 ### 🐛 Bug Fixes
