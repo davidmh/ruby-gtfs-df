@@ -174,6 +174,171 @@ module GtfsDf
       send("#{file_name}=", value)
     end
 
+    # Returns a DataFrame of all service_id/date pairs active in the feed.
+    # Columns: [date, service_id]
+    #
+    # @return [Polars::DataFrame]
+    def service_dates
+      start_date_col = Polars.col("start_date")
+      end_date_col = Polars.col("end_date")
+      date_col = Polars.col("date")
+
+      calendar_df = @calendar&.with_columns(
+        GtfsDf::Utils.parse_date(start_date_col),
+        GtfsDf::Utils.parse_date(end_date_col)
+      )
+
+      calendar_dates_df = @calendar_dates&.with_columns(
+        GtfsDf::Utils.parse_date(date_col)
+      )
+
+      # Expand calendar to a range of (service_id, date)
+      services_by_date = nil
+      if calendar_df
+        expanded = calendar_df.with_columns(
+          Polars.date_ranges(start_date_col, end_date_col, "1d").alias("date")
+        ).explode("date")
+
+        dow_col_names = [
+          "monday",
+          "tuesday",
+          "wednesday",
+          "thursday",
+          "friday",
+          "saturday",
+          "sunday"
+        ]
+
+        # Each day in the calendar table defines if a day of the week has service or not
+        # 1 - Service is available for all Mondays in the date range.
+        # 0 - Service is not available for Mondays in the date range.
+        # https://gtfs.org/documentation/schedule/reference/#calendartxt
+        #
+        # This filter will be applied to the expanded calendar dates, where the
+        # ranges become rows of individual dates, we need to ensure that each
+        # individual date matches the day of the week (DOW) before we check if
+        # it's enabled.
+        filter_expr = dow_col_names.each_with_index.reduce(Polars.lit(false)) do |expr, (dow_col_name, idx)|
+          # Polars weekday: Monday=1, Sunday=7
+          expr | ((Polars.col("date").dt.weekday == (idx + 1)) & (Polars.col(dow_col_name) == "1"))
+        end
+
+        services_by_date = expanded.filter(filter_expr).select("date", "service_id")
+      end
+
+      # Apply calendar_dates exceptions
+      if calendar_dates_df
+        exception_type_col = Polars.col("exception_type")
+
+        additions = calendar_dates_df
+          .filter(exception_type_col == "1")
+          .select("date", "service_id")
+
+        subtractions = calendar_dates_df
+          .filter(exception_type_col == "2")
+          .select("date", "service_id")
+
+        services_by_date = if services_by_date
+          # If we found service dates from the calendar table, we need to first
+          # add the inclusions, then remove the exceptions coming from the calendar_dates
+          services_by_date
+            .vstack(additions).unique
+            .join(subtractions, on: ["service_id", "date"], how: "anti")
+        else
+          # Otherwise, we can just use the additions as the new services_by_date
+          additions.unique
+        end
+      end
+
+      services_by_date
+    end
+
+    # Returns a DataFrame of trip counts per date.
+    # Columns: [date, count]
+    #
+    # @return [Polars::DataFrame]
+    def trip_count_dates
+      cached_service_dates = service_dates
+      return nil if cached_service_dates.nil? || cached_service_dates.height == 0
+
+      # This expression builds from the dataframe returned by frequency based
+      # trip counts, defaulting to 1 for the trips that don't have an entry in
+      # the frequencies table. We're defining the expression here just to
+      # remove some noise from the join below.
+      trip_size = Polars.coalesce("freq_count", Polars.lit(1)).alias("trip_size")
+
+      # Count trips per service_id, considering the possible size they may have
+      # from the frequencies table.
+      trip_counts = @trips
+        .join(frequency_based_trip_counts, on: "trip_id", how: "left")
+        .group_by("service_id")
+        .agg(trip_size.sum.alias("trip_count"))
+
+      # Join to services to get trips per date
+      daily_trips = cached_service_dates
+        .join(trip_counts, on: "service_id", how: "left")
+        .with_columns(Polars.col("trip_count").fill_null(0))
+
+      # Sum trips per date
+      daily_trips.group_by("date").agg(Polars.col("trip_count").sum.alias("count"))
+    end
+
+    # Returns a DataFrame of trip counts from the frequencies table
+    # Columns: [trip_id, freq_count]
+    #
+    # @return [Polars::DataFrame]
+    def frequency_based_trip_counts
+      # If the feed was initialized with the parse_times flag, we already have
+      # seconds since midnight in these columns, otherwise we need to convert
+      # them first, so we can get the duration in seconds
+      end_time_seconds_col, start_time_seconds_col = if @parse_times
+        [Polars.col("end_time"), Polars.col("start_time")]
+      else
+        [
+          GtfsDf::Utils.as_seconds_since_midnight("end_time"),
+          GtfsDf::Utils.as_seconds_since_midnight("start_time")
+        ]
+      end
+
+      duration_seconds = (end_time_seconds_col - start_time_seconds_col).alias("duration_seconds")
+      count = (duration_seconds / Polars.col("headway_secs")).floor.sum.alias("freq_count")
+
+      # The frequencies table is optional, we default to an empty dataframe to
+      # remove friction in the join with trips.
+      if @frequencies
+        @frequencies.group_by("trip_id").agg(count).select("trip_id", "freq_count")
+      else
+        Polars::DataFrame.new(
+          {"trip_id" => [], "freq_count" => []},
+          schema: {"trip_id" => Polars::String, "freq_count" => Polars::Float64}
+        )
+      end
+    end
+
+    # Identifies the start date of the busiest week in the feed by trip count.
+    #
+    # @return [Date] The Monday of the busiest week
+    def busiest_week
+      daily_total = trip_count_dates
+      return nil if daily_total.nil? || daily_total.height == 0
+
+      # Group by week (ISO week, starting Monday)
+      weekly_agg = daily_total
+        .with_columns(Polars.col("date").dt.truncate("1w").alias("week_start"))
+        .group_by("week_start")
+        .agg(Polars.col("count").sum.alias("total_trips"))
+
+      # Get the week with max trips
+      # Sort by total_trips descending, then date ascending to pick the earliest date in case of a tie
+      sorted_weeks = weekly_agg.sort(["total_trips", "week_start"], reverse: [true, false])
+      best_week = sorted_weeks.head(1)
+
+      return nil if best_week.height == 0
+
+      # Return the start date of the busiest week
+      best_week["week_start"][0]
+    end
+
     private
 
     def filter!(file, filters, filtered, filter_only_children: false)

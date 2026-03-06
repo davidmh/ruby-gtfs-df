@@ -50,7 +50,7 @@ RSpec.describe GtfsDf::Feed do
     Polars::DataFrame.new({
       "service_id" => %w[B],
       "date" => %w[20250102],
-      "exception_type" => [1]
+      "exception_type" => ["1"]
     })
   end
   let(:fare_attributes_df) do
@@ -71,6 +71,9 @@ RSpec.describe GtfsDf::Feed do
       "route_id" => [nil, nil, "1", "2"]
     })
   end
+  let(:frequencies_df) do
+    GtfsDf::Schema::Frequencies.empty_dataframe
+  end
   let(:feed_dfs) do
     {
       "agency" => agency_df,
@@ -81,10 +84,11 @@ RSpec.describe GtfsDf::Feed do
       "calendar" => calendar_df,
       "calendar_dates" => calendar_dates_df,
       "fare_attributes" => fare_attributes_df,
-      "fare_rules" => fare_rules_df
+      "fare_rules" => fare_rules_df,
+      "frequencies" => frequencies_df
     }
   end
-  let(:feed) { described_class.new(feed_dfs) }
+  let(:feed) { described_class.new(feed_dfs, parse_times: true) }
 
   describe ".new" do
     it "sets GTFS file properties as DataFrames" do
@@ -753,7 +757,7 @@ RSpec.describe GtfsDf::Feed do
     it "returns a hash of dataframes by file_name" do
       result = feed.by_dataframe_name
       expect(result.keys).to match_array(["agency", "stops", "routes", "trips",
-        "stop_times", "calendar", "calendar_dates", "fare_attributes", "fare_rules"])
+        "stop_times", "calendar", "calendar_dates", "fare_attributes", "fare_rules", "frequencies"])
       expect(result.values.first).to be_a(Polars::DataFrame)
     end
   end
@@ -770,6 +774,124 @@ RSpec.describe GtfsDf::Feed do
                             "agency_name" => ["Test A"]})
       feed["agency"] = other_agency_dataframe
       expect(feed["agency"]).to eq(other_agency_dataframe)
+    end
+  end
+
+  describe "service_dates" do
+    it "matches the fixtures" do
+      service_dates = feed.service_dates
+
+      # A whole year of service for each service id
+      expect(service_dates.height).to eq(730)
+
+      # Half from each
+      expect(service_dates.filter(
+        Polars.col("service_id").eq("A")
+      ).height).to eq(365)
+      expect(service_dates.filter(
+        Polars.col("service_id").eq("B")
+      ).height).to eq(365)
+
+      # An arbitrary date within that range should return both services
+      expect(service_dates.filter(
+        Polars.col("date").eq(Date.strptime("2025-12-29"))
+      )["service_id"].to_a).to match(%w[A B])
+    end
+
+    describe "calendar_dates additions" do
+      let(:calendar_dates_df) do
+        # Add one day of service for B on 2026-03-02
+        Polars::DataFrame.new({
+          "service_id" => %w[B],
+          "date" => %w[20260302],
+          "exception_type" => ["1"]
+        })
+      end
+
+      it "should respect calendar_dates additions" do
+        service_dates_for_b = feed.service_dates.filter(
+          Polars.col("service_id").eq("B")
+        )
+
+        # One extra day compared to the default fixture
+        expect(service_dates_for_b.height).to eq(366)
+
+        # That extra day should match the date from the exception added in this describe
+        expect(feed.service_dates.filter(
+          Polars.col("date").eq(Date.strptime("2026-03-02", "%Y-%m-%d"))
+        )["service_id"].unique.to_a).to match(["B"])
+      end
+    end
+
+    describe "calendar_dates subtractions" do
+      let(:calendar_dates_df) do
+        # Remove one day of service for B on 2025-01-02
+        Polars::DataFrame.new({
+          "service_id" => %w[B],
+          "date" => %w[20250102],
+          "exception_type" => ["2"]
+        })
+      end
+
+      it "should respect calendar_dates subtractions" do
+        service_dates_for_b = feed.service_dates.filter(
+          Polars.col("service_id").eq("B")
+        )
+
+        expect(service_dates_for_b.height).to eq(364)
+      end
+    end
+  end
+
+  describe "busiest_week" do
+    context "without frequencies" do
+      it "finds the week with most trips purely against the trips table" do
+        expect(feed.busiest_week).to eq(Date.new(2025, 1, 6))
+      end
+    end
+
+    context "with frequencies" do
+      let(:spike_service_id) { "spike_service_id" }
+      let(:spike_trip_id) { "t3" }
+
+      # Add a service that only runs for one week in November
+      # The other two services remain the same
+      let(:calendar_df) do
+        Polars::DataFrame.new({
+          "service_id" => ["A", "B", spike_service_id],
+          "monday" => ["1", "1", "1"],
+          "tuesday" => ["1", "1", "1"],
+          "wednesday" => ["1", "1", "1"],
+          "thursday" => ["1", "1", "1"],
+          "friday" => ["1", "1", "1"],
+          "saturday" => ["1", "1", "1"],
+          "sunday" => ["1", "1", "1"],
+          "start_date" => ["20250101", "20250101", "20251103"],
+          "end_date" => ["20251231", "20251231", "20251109"]
+        })
+      end
+
+      let(:trips_df) do
+        Polars::DataFrame.new({
+          "trip_id" => ["t1", "t2", spike_trip_id],
+          "route_id" => ["1", "2", "1"],
+          "service_id" => ["A", "B", spike_service_id]
+        })
+      end
+
+      let(:frequencies_df) do
+        Polars::DataFrame.new({
+          "trip_id" => ["t2"],
+          "start_time" => ["08:00:00"],
+          "end_time" => ["18:00:00"], # 10 hours = 36000 seconds
+          "headway_secs" => [600]     # 10 minutes = 600 seconds. Count = 60.
+        })
+      end
+
+      it "factors the trip count from the frequencies" do
+        # The spike service week should have significantly more trips than any other week
+        expect(feed.busiest_week).to eq(Date.new(2025, 11, 3))
+      end
     end
   end
 end
