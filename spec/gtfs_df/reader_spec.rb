@@ -84,4 +84,20 @@ RSpec.describe GtfsDf::Reader do
       expect(feed.stop_times["departure_time"].dtype).to eq(Polars::String)
     end
   end
+
+  describe "extraneous/empty files" do
+    let(:zip_path) do
+      # This file has:
+      # - a calendar_dates.txt, but it's empty, not even headers
+      # - an extraneous file
+      File.expand_path("../fixtures/extraneous-and-empty-files.zip", __dir__)
+    end
+
+    it "can extract with empty or extraneous files" do
+      feed = described_class.load_from_zip(zip_path)
+
+      expect(feed.calendar_dates).to be(nil)
+      expect(feed.calendar).not_to be(nil)
+    end
+  end
 end

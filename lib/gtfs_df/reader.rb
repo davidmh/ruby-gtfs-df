@@ -10,10 +10,18 @@ module GtfsDf
     def self.load_from_zip(zip_path, parse_times: false)
       data = nil
 
+      relevant_files = GtfsDf::Feed::GTFS_FILES
+        .map { |name| "#{name}.txt" }
+        .to_set
+
       Dir.mktmpdir do |tmpdir|
         Zip::File.open(zip_path) do |zip_file|
           zip_file.each do |entry|
-            next unless entry.file?
+            # We're skipping:
+            # - directories
+            # - unrelated files
+            # - empty feed files
+            next unless entry.file? && relevant_files.include?(entry.name) && has_header?(entry)
             entry.extract(destination_directory: tmpdir)
           end
         end
@@ -44,6 +52,12 @@ module GtfsDf
     private_class_method def self.data_frame(gtfs_file, path)
       schema_class_name = gtfs_file.split("_").map(&:capitalize).join
       GtfsDf::Schema.const_get(schema_class_name).new(path).df
+    end
+
+    private_class_method def self.has_header?(zip_entry)
+      zip_entry.get_input_stream.readline.strip != ""
+    rescue
+      false
     end
   end
 end
