@@ -100,4 +100,11 @@ RSpec.describe GtfsDf::Reader do
       expect(feed.calendar).not_to be(nil)
     end
   end
+
+  describe "nested files" do
+    let(:zip_path) { File.expand_path("../fixtures/sample_nested.zip", __dir__) }
+    let(:feed) { described_class.load_from_zip(zip_path) }
+
+    it_behaves_like "feed object"
+  end
 end

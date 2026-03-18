@@ -17,12 +17,15 @@ module GtfsDf
       Dir.mktmpdir do |tmpdir|
         Zip::File.open(zip_path) do |zip_file|
           zip_file.each do |entry|
+            # Extract files in nested directories into the root of the tmpdir
+            file_name = File.basename(entry.name)
+
             # We're skipping:
-            # - directories
             # - unrelated files
             # - empty feed files
-            next unless entry.file? && relevant_files.include?(entry.name) && has_header?(entry)
-            entry.extract(destination_directory: tmpdir)
+            next unless relevant_files.include?(file_name) && has_header?(entry)
+
+            entry.extract(file_name, destination_directory: tmpdir)
           end
         end
 
