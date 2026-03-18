@@ -1,3 +1,13 @@
+## [0.10.1] - 2026-03-18
+
+### 🐛 Bug Fixes
+
+- Sanitize feed input
+
+### ⚙️ Miscellaneous Tasks
+
+- Normalize platforms
+- Ignore the examples folder on publishing
 ## [0.10.0] - 2026-03-06
 
 ### 🚀 Features
@@ -9,6 +19,10 @@
 ### 🐛 Bug Fixes
 
 - Service dates and busiest week fixes
+
+### ⚙️ Miscellaneous Tasks
+
+- Bump version to 0.10.0
 ## [0.9.3] - 2026-02-27
 
 ### 🐛 Bug Fixes
