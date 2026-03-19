@@ -101,10 +101,23 @@ RSpec.describe GtfsDf::Reader do
     end
   end
 
-  describe "nested files" do
-    let(:zip_path) { File.expand_path("../fixtures/sample_nested.zip", __dir__) }
-    let(:feed) { described_class.load_from_zip(zip_path) }
+  context "directories" do
+    describe "nested files" do
+      let(:zip_path) { File.expand_path("../fixtures/sample_nested.zip", __dir__) }
+      let(:feed) { described_class.load_from_zip(zip_path) }
 
-    it_behaves_like "feed object"
+      it_behaves_like "feed object"
+    end
+
+    describe "multiple feeds" do
+      let(:zip_path) { File.expand_path("../fixtures/multi_feed.zip", __dir__) }
+
+      it "throws a clear error on multiple instances of the same file" do
+        expect { described_class.load_from_zip(zip_path) }.to raise_error(
+          GtfsDf::Error,
+          "Found multiple instances of the same file: feed_a/agency.txt and feed_b/agency.txt"
+        )
+      end
+    end
   end
 end
