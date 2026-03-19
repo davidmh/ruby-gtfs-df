@@ -14,16 +14,24 @@ module GtfsDf
         .map { |name| "#{name}.txt" }
         .to_set
 
+      seen = {}
+
       Dir.mktmpdir do |tmpdir|
         Zip::File.open(zip_path) do |zip_file|
           zip_file.each do |entry|
             # Extract files in nested directories into the root of the tmpdir
             file_name = File.basename(entry.name)
 
+            if seen[file_name]
+              raise GtfsDf::Error, "Found multiple instances of the same file: #{seen[file_name]} and #{entry.name}"
+            end
+
             # We're skipping:
             # - unrelated files
             # - empty feed files
             next unless relevant_files.include?(file_name) && has_header?(entry)
+
+            seen[file_name] = entry.name
 
             entry.extract(file_name, destination_directory: tmpdir)
           end
