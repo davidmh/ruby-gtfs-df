@@ -1,3 +1,12 @@
+## [0.10.2] - 2026-03-20
+
+### 🐛 Bug Fixes
+
+- Handle nested feeds
+
+### ⚙️ Miscellaneous Tasks
+
+- Raise clear message for multi-feed inputs
 ## [0.10.1] - 2026-03-18
 
 ### 🐛 Bug Fixes
@@ -8,6 +17,7 @@
 
 - Normalize platforms
 - Ignore the examples folder on publishing
+- Bump version to 0.10.1
 ## [0.10.0] - 2026-03-06
 
 ### 🚀 Features
