@@ -128,12 +128,12 @@ module GtfsDf
           trip_ids = if trip_ids.empty?
             new_filtered["trips"]["trip_id"]
           else
-            trip_ids.filter(trip_ids.is_in(new_filtered["trips"]["trip_id"]))
+            trip_ids.filter(trip_ids.is_in(new_filtered["trips"]["trip_id"].implode))
           end
         end
 
         if trip_ids
-          filtered = filter!("trips", {"trip_id" => trip_ids.implode}, filtered.dup)
+          filtered = filter!("trips", {"trip_id" => trip_ids}, filtered.dup)
         end
       end
 
@@ -330,7 +330,7 @@ module GtfsDf
 
       # Get the week with max trips
       # Sort by total_trips descending, then date ascending to pick the earliest date in case of a tie
-      sorted_weeks = weekly_agg.sort(["total_trips", "week_start"], reverse: [true, false])
+      sorted_weeks = weekly_agg.sort(["total_trips", "week_start"], descending: [true, false])
       best_week = sorted_weeks.head(1)
 
       return nil if best_week.height == 0
@@ -346,7 +346,9 @@ module GtfsDf
         df = filtered[file]
 
         filters.each do |col, val|
-          df = if val.is_a?(Polars::Series) || val.is_a?(Array)
+          df = if val.is_a?(Polars::Series)
+            df.filter(Polars.col(col).is_in(val.implode))
+          elsif val.is_a?(Array)
             df.filter(Polars.col(col).is_in(val))
           elsif val.respond_to?(:call)
             df.filter(val.call(Polars.col(col)))
