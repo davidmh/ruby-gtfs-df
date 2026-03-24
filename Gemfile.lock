@@ -3,7 +3,7 @@ PATH
   specs:
     gtfs_df (0.10.2)
       networkx (~> 0.4)
-      polars-df (~> 0.22, < 0.24)
+      polars-df (~> 0.25)
       rubyzip (>= 3.0, < 4.0)
 
 GEM
@@ -58,20 +58,20 @@ GEM
     parser (3.3.10.2)
       ast (~> 2.4.1)
       racc
-    polars-df (0.23.0)
+    polars-df (0.25.1)
       bigdecimal
       rb_sys
-    polars-df (0.23.0-aarch64-linux)
+    polars-df (0.25.1-aarch64-linux)
       bigdecimal
-    polars-df (0.23.0-aarch64-linux-musl)
+    polars-df (0.25.1-aarch64-linux-musl)
       bigdecimal
-    polars-df (0.23.0-arm64-darwin)
+    polars-df (0.25.1-arm64-darwin)
       bigdecimal
-    polars-df (0.23.0-x86_64-darwin)
+    polars-df (0.25.1-x86_64-darwin)
       bigdecimal
-    polars-df (0.23.0-x86_64-linux)
+    polars-df (0.25.1-x86_64-linux)
       bigdecimal
-    polars-df (0.23.0-x86_64-linux-musl)
+    polars-df (0.25.1-x86_64-linux-musl)
       bigdecimal
     prism (1.9.0)
     pry (0.15.2)
