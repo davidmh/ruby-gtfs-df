@@ -17,9 +17,9 @@ module GtfsDf
     def as_seconds_since_midnight(col_name)
       parts = Polars.col(col_name).str.split(":")
 
-      hours = parts.list.get(0).cast(:i64)
-      minutes = parts.list.get(1).cast(:i64)
-      seconds = parts.list.get(2).cast(:i64)
+      hours = parts.list.get(0).cast(Polars::Int64)
+      minutes = parts.list.get(1).cast(Polars::Int64)
+      seconds = parts.list.get(2).cast(Polars::Int64)
 
       (hours * SECONDS_IN_HOUR) +
         (minutes * SECONDS_IN_MINUTE) +
@@ -42,9 +42,9 @@ module GtfsDf
 
       Polars.format(
         "{}:{}:{}",
-        hours.cast(:str).str.zfill(2),
-        minutes.cast(:str).str.zfill(2),
-        seconds.cast(:str).str.zfill(2)
+        hours.cast(Polars::String).str.zfill(2),
+        minutes.cast(Polars::String).str.zfill(2),
+        seconds.cast(Polars::String).str.zfill(2)
       )
     end
 

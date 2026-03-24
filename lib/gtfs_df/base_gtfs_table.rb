@@ -22,7 +22,7 @@ module GtfsDf
           dtypes = self.class::SCHEMA.slice(*df.columns)
           df
             .with_columns(dtypes.keys.map do |col|
-              stripped = Polars.col(col).str.strip
+              stripped = Polars.col(col).str.strip_chars
               Polars.when(stripped.str.len_chars.gt(0))
                 .then(stripped)
                 .otherwise(Polars.lit(nil))

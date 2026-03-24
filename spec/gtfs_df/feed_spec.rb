@@ -795,7 +795,7 @@ RSpec.describe GtfsDf::Feed do
       # An arbitrary date within that range should return both services
       expect(service_dates.filter(
         Polars.col("date").eq(Date.strptime("2025-12-29"))
-      )["service_id"].to_a).to match(%w[A B])
+      )["service_id"].to_a).to match_array(%w[A B])
     end
 
     describe "calendar_dates additions" do
