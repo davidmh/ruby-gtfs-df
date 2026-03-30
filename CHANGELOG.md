@@ -1,3 +1,8 @@
+## [0.11.0] - 2026-03-30
+
+### ⚙️ Miscellaneous Tasks
+
+- [**breaking**] Update ruby-polars dependency
 ## [0.10.2] - 2026-03-20
 
 ### 🐛 Bug Fixes
@@ -7,6 +12,7 @@
 ### ⚙️ Miscellaneous Tasks
 
 - Raise clear message for multi-feed inputs
+- Bump version to 0.10.2
 ## [0.10.1] - 2026-03-18
 
 ### 🐛 Bug Fixes
