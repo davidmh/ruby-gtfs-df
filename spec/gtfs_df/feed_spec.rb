@@ -894,4 +894,52 @@ RSpec.describe GtfsDf::Feed do
       end
     end
   end
+
+  describe "unreferenced service_ids in calendar.txt" do
+    let(:trips_df) do
+      Polars::DataFrame.new({
+        "trip_id" => %w[t1 t2],
+        "route_id" => %w[1 2],
+        "service_id" => %w[calendar_dates_service calendar_dates_service]
+      })
+    end
+    let(:stop_times_df) do
+      Polars::DataFrame.new({
+        "trip_id" => %w[t1 t1 t2 t2],
+        "stop_id" => %w[S1 S2 S2 S3],
+        "stop_sequence" => [1, 2, 1, 2]
+      })
+    end
+    let(:calendar_df) do
+      Polars::DataFrame.new({
+        "service_id" => ["unused_service"],
+        "monday" => ["1"],
+        "tuesday" => ["1"],
+        "wednesday" => ["1"],
+        "thursday" => ["1"],
+        "friday" => ["1"],
+        "saturday" => ["1"],
+        "sunday" => ["1"],
+        "start_date" => ["20250101"],
+        "end_date" => ["20251231"]
+      })
+    end
+    let(:calendar_dates_df) do
+      Polars::DataFrame.new({
+        "service_id" => %w[calendar_dates_service calendar_dates_service],
+        "date" => %w[20250304 20250427],
+        "exception_type" => [1, 1]
+      })
+    end
+
+    it "preserves trips from calendar_dates service when calendar has unused service_ids" do
+      view = {"trips" => {"trip_id" => ->(_) { true }}}
+      filtered = feed.filter(view)
+
+      expect(filtered.calendar).to be_nil
+      expect(filtered.calendar_dates["service_id"].unique.to_a).to eq(%w[calendar_dates_service])
+      expect(filtered.routes["route_id"].to_a).to match_array(%w[1 2])
+      expect(filtered.trips["trip_id"].to_a).to match_array(%w[t1 t2])
+    end
+  end
 end
