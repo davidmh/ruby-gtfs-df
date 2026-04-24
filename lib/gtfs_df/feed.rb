@@ -432,21 +432,22 @@ module GtfsDf
               # union semantics across those two parents (a trip is valid if it appears in
               # either).
               #
-              # Here we accumulate valid service_ids across calendar/calendar_dates, but only
-              # within the pool of trips that are already reachable from structural parents.
+              # Accumulate service_ids from each calendar source, then apply the filter.
+              # If the filter results in 0 trips, we continue accumulating to allow the next
+              # calendar edge to add valid service_ids. This handles feeds where
+              # calendar.txt has unreferenced service_ids but all trips use
+              # calendar_dates.txt service_ids.
               accumulated_service_ids = Polars.concat([accumulated_service_ids, valid_values]).unique
-
-              # Determine the base pool of trips:
-              # - If we've already restricted trips via structural parents (routes,
-              #   stop_times, shapes, etc), use that as the base.
-              # - Otherwise, like when filtering directly on trips, use the current
-              #   trips dataframe.
               trips_base_df ||= filtered[child_node.fetch(:file)]
               next unless trips_base_df && trips_base_df.height > 0
 
-              filtered[child_node.fetch(:file)] = trips_base_df.filter(
+              filtered_trips = trips_base_df.filter(
                 Polars.col("service_id").is_in(accumulated_service_ids.implode)
               )
+
+              if filtered_trips.height > 0
+                filtered[child_node.fetch(:file)] = filtered_trips
+              end
             else
               # Original single-edge logic for all other nodes
               before = child_df.height
