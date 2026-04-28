@@ -1,8 +1,19 @@
+## [0.11.1] - 2026-04-28
+
+### 🐛 Bug Fixes
+
+- Account for unreferenced calendar entries
+
+### 🧪 Testing
+
+- Validate filtering from feed with empty calendar
+- Validate unreferenced calendar dates
 ## [0.11.0] - 2026-03-30
 
 ### ⚙️ Miscellaneous Tasks
 
 - [**breaking**] Update ruby-polars dependency
+- Bump version to 0.11.0
 ## [0.10.2] - 2026-03-20
 
 ### 🐛 Bug Fixes
