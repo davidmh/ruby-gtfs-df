@@ -429,6 +429,43 @@ RSpec.describe GtfsDf::Feed do
         expect(filtered.routes.height).to eq(0)
       end
     end
+
+    describe "pruning (fixpoint traversal)" do
+      let(:bug_feed_dfs) {
+        {
+          "agency" => Polars::DataFrame.new({"agency_id" => ["A"]}),
+          "routes" => Polars::DataFrame.new({"route_id" => %w[R1 R2], "agency_id" => %w[A A]}),
+          "trips" => Polars::DataFrame.new({"trip_id" => %w[T1 T2], "route_id" => %w[R1 R2], "service_id" => %w[S1 S2]}),
+          "calendar" => Polars::DataFrame.new({
+            "service_id" => %w[S1 S2], "monday" => %w[1 1], "tuesday" => %w[1 1],
+            "wednesday" => %w[1 1], "thursday" => %w[1 1], "friday" => %w[1 1],
+            "saturday" => %w[0 0], "sunday" => %w[0 0],
+            "start_date" => %w[20250101 20250101], "end_date" => %w[20251231 20251231]
+          }),
+          "fare_rules" => Polars::DataFrame.new({"fare_id" => %w[F1 F2 F_ZONE], "route_id" => ["R1", "R2", nil]}),
+          "stop_times" => Polars::DataFrame.new({"trip_id" => [], "stop_id" => [], "stop_sequence" => []}),
+          "stops" => Polars::DataFrame.new({"stop_id" => []})
+        }
+      }
+      let(:bug_feed) { described_class.new(bug_feed_dfs) }
+
+      it "re-evaluates downstream edges when a node shrinks mid-traversal" do
+        filtered = bug_feed.by_dataframe_name.dup
+        filtered["calendar"] = filtered["calendar"].filter(Polars.col("service_id").eq("S1"))
+        bug_feed.send(:prune!, "trips", filtered, filter_only_children: false)
+
+        expect(filtered["trips"]["trip_id"].to_a).to eq(%w[T1])
+        expect(filtered["routes"]["route_id"].to_a).to eq(%w[R1])
+      end
+
+      it "does not drop zone-based fare rules (route_id IS NULL) when other routes drop" do
+        filtered = bug_feed.by_dataframe_name.dup
+        filtered["calendar"] = filtered["calendar"].filter(Polars.col("service_id").eq("S1"))
+        bug_feed.send(:prune!, "trips", filtered, filter_only_children: false)
+
+        expect(filtered["fare_rules"]["fare_id"].to_a).to match_array(%w[F1 F_ZONE])
+      end
+    end
   end
 
   describe "initialization error handling" do
