@@ -441,12 +441,21 @@ module GtfsDf
               trips_base_df ||= filtered[child_node.fetch(:file)]
               next unless trips_base_df && trips_base_df.height > 0
 
+              before = child_df.height
               filtered_trips = trips_base_df.filter(
                 Polars.col("service_id").is_in(accumulated_service_ids.implode)
               )
 
-              if filtered_trips.height > 0
-                filtered[child_node.fetch(:file)] = filtered_trips
+              if filtered_trips.height < before && filtered_trips.height > 0
+                child_df = filtered_trips
+                child_df = Polars.concat([child_df, saved_vals], how: "vertical") if saved_vals
+                filtered[child_node.fetch(:file)] = child_df
+                # clear outgoing edges from seen_edges to force re-evaluation of dependencies (like routes)
+                seen_edges.delete_if { |e| e.start_with?("#{child_node_id}-") }
+              elsif filtered_trips.height > 0
+                child_df = filtered_trips
+                child_df = Polars.concat([child_df, saved_vals], how: "vertical") if saved_vals
+                filtered[child_node.fetch(:file)] = child_df
               end
             else
               # Original single-edge logic for all other nodes
@@ -459,6 +468,7 @@ module GtfsDf
               if child_df.height < before
                 child_df = Polars.concat([child_df, saved_vals], how: "vertical") if saved_vals
                 filtered[child_node.fetch(:file)] = child_df
+                seen_edges.delete_if { |e| e.start_with?("#{child_node_id}-") }
               end
             end
           end
