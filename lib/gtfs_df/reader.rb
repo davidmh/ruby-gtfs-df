@@ -6,13 +6,13 @@ module GtfsDf
     #
     # @param zip_path [String] Path to the GTFS zip file
     # @param parse_times [Boolean] Whether to parse time fields to seconds since midnight (default: false)
+    # @param relevant_files [Array<String>] A list of file names, useful to avoid loading tables you don't care about.
     # @return [Feed] The loaded GTFS feed
-    def self.load_from_zip(zip_path, parse_times: false)
+    def self.load_from_zip(zip_path, parse_times: false, relevant_files: nil)
       data = nil
 
-      relevant_files = GtfsDf::Feed::GTFS_FILES
-        .map { |name| "#{name}.txt" }
-        .to_set
+      relevant_files ||= GtfsDf::Feed::GTFS_FILES.map { |name| "#{name}.txt" }
+      relevant_files = relevant_files.to_set
 
       seen = {}
 
@@ -37,7 +37,7 @@ module GtfsDf
           end
         end
 
-        data = load_from_dir(tmpdir, parse_times: parse_times)
+        data = load_from_dir(tmpdir, parse_times:, relevant_files:)
       end
 
       data
@@ -47,12 +47,17 @@ module GtfsDf
     #
     # @param dir_path [String] Path to the GTFS directory
     # @param parse_times [Boolean] Whether to parse time fields to seconds since midnight (default: false)
+    # @param relevant_files [Array<String>] A list of file names, useful to avoid loading tables you don't care about.
     # @return [Feed] The loaded GTFS feed
-    def self.load_from_dir(dir_path, parse_times: false)
+    def self.load_from_dir(dir_path, parse_times: false, relevant_files: nil)
+      relevant_files ||= GtfsDf::Feed::GTFS_FILES.map { |name| "#{name}.txt" }
+      relevant_files = relevant_files.to_set
+
       data = {}
       GtfsDf::Feed::GTFS_FILES.each do |gtfs_file|
-        path = File.join(dir_path, "#{gtfs_file}.txt")
-        next unless File.exist?(path)
+        basename = "#{gtfs_file}.txt"
+        path = File.join(dir_path, basename)
+        next unless relevant_files.include?(basename) && File.exist?(path)
 
         data[gtfs_file] = data_frame(gtfs_file, path)
       end
