@@ -66,7 +66,11 @@ module GtfsDf
     end
 
     private_class_method def self.has_header?(zip_entry)
-      zip_entry.get_input_stream.readline.strip != ""
+      zip_entry
+        .get_input_stream
+        .readline
+        .delete_prefix("\xEF\xBB\xBF".b) # BOM
+        .strip != ""
     rescue
       false
     end
