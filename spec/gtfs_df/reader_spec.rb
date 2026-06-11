@@ -65,6 +65,30 @@ RSpec.describe GtfsDf::Reader do
     it_behaves_like "feed object"
   end
 
+  describe "relevant files" do
+    let(:relevant_files) do
+      %w[
+        agency.txt stops.txt routes.txt trips.txt stop_times.txt
+        calendar.txt calendar_dates.txt frequencies.txt
+      ]
+    end
+
+    it "can load a subset of files" do
+      Dir.mktmpdir do |tmp_dir|
+        Zip::File.open(zip_path) do |zipfile|
+          zipfile.each { |entry| entry.extract(destination_directory: tmp_dir) }
+        end
+
+        feed = described_class.load_from_dir(tmp_dir, relevant_files:)
+
+        expect(feed.fare_rules).to be_nil
+        expect(feed.fare_attributes).to be_nil
+        expect(feed.routes).to be_a(Polars::DataFrame)
+        expect(feed.trips).to be_a(Polars::DataFrame)
+      end
+    end
+  end
+
   describe "time parsing" do
     it "parses time fields when parse_times is true" do
       feed = described_class.load_from_zip(zip_path, parse_times: true)
