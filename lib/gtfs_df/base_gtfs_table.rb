@@ -12,7 +12,13 @@ module GtfsDf
         elsif input.is_a?(String)
           # TODO: use `infer_schema: false` instead of `infer_schema_length` after polars release:
           # https://github.com/ankane/ruby-polars/blob/master/CHANGELOG.md#100-unreleased
-          df = Polars.read_csv(input, infer_schema_length: 0, encoding: "utf8-lossy")
+          df = Polars
+            .read_csv(
+              input,
+              infer_schema_length: 0,
+              encoding: "utf8-lossy",
+              truncate_ragged_lines: true
+            )
             .rename(->(col) { col.strip })
 
           # Strip out empty lines. Unfortunately read_csv does not support the drop_empty_rows
