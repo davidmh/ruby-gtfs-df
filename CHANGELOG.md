@@ -1,3 +1,13 @@
+## [0.12.0] - 2026-06-12
+
+### 🚀 Features
+
+- Allow loading a subset of tables
+
+### 🐛 Bug Fixes
+
+- Truncate ragged lines
+- Consider BOM when looking for empty files
 ## [0.11.1] - 2026-04-28
 
 ### 🐛 Bug Fixes
@@ -8,6 +18,10 @@
 
 - Validate filtering from feed with empty calendar
 - Validate unreferenced calendar dates
+
+### ⚙️ Miscellaneous Tasks
+
+- Bump version to 0.11.1
 ## [0.11.0] - 2026-03-30
 
 ### ⚙️ Miscellaneous Tasks
