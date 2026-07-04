@@ -7,6 +7,7 @@
     enable = true;
     versionFile = ./.ruby-version;
     bundler.enable = false;
+    lsp.enable = false;
   };
 
   git-hooks.hooks = {

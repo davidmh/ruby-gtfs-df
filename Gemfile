@@ -13,6 +13,6 @@ group :development, :test do
 end
 
 group :development do
-  gem "solargraph"
+  gem "ruby-lsp"
   gem "standard", "~> 1.53"
 end
