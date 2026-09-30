@@ -6,8 +6,8 @@ module GtfsDf
       # trips.txt
       # direction_id: Indicates the direction of travel for a trip.
       DIRECTION_ID = [
-        ["0", "Outbound travel"],
-        ["1", "Inbound travel"]
+        ["0", "Direction index 0"],
+        ["1", "Direction index 1"]
       ]
 
       # wheelchair_accessible: Indicates wheelchair accessibility.

@@ -17,6 +17,13 @@ RSpec.describe GtfsDf::Feed do
                             "route_id" => %w[1 2],
                             "service_id" => %w[A B]})
   end
+  let(:directions_df) do
+    Polars::DataFrame.new({
+      "route_id" => %w[1 1 2],
+      "direction_id" => %w[0 1 0],
+      "direction" => %w[Inbound Outbound Inbound]
+    })
+  end
   # S5 is the parent station for S1
   # S6 is the parent station for S4
   let(:stops_df) do
@@ -85,7 +92,8 @@ RSpec.describe GtfsDf::Feed do
       "calendar_dates" => calendar_dates_df,
       "fare_attributes" => fare_attributes_df,
       "fare_rules" => fare_rules_df,
-      "frequencies" => frequencies_df
+      "frequencies" => frequencies_df,
+      "directions" => directions_df
     }
   end
   let(:feed) { described_class.new(feed_dfs, parse_times: true) }
@@ -153,6 +161,7 @@ RSpec.describe GtfsDf::Feed do
           expect(filtered.calendar["service_id"].to_a).to eq(%w[A])
           expect(filtered.fare_attributes["fare_id"].to_a).to eq(%w[F1 F3])
           expect(filtered.fare_rules["fare_id"].to_a).to eq(%w[F1 F3])
+          expect(filtered.directions["route_id"].to_a).to eq(%w[1 1])
           expect(filtered.calendar_dates).to be(nil)
         end
 
@@ -174,6 +183,7 @@ RSpec.describe GtfsDf::Feed do
           expect(filtered.calendar["service_id"].to_a).to eq(%w[A])
           expect(filtered.fare_attributes["fare_id"].to_a).to eq(%w[F1 F3])
           expect(filtered.fare_rules["fare_id"].to_a).to eq(%w[F1 F3])
+          expect(filtered.directions["route_id"].to_a).to eq(%w[1 1])
           expect(filtered.calendar_dates).to be(nil)
         end
 
@@ -193,6 +203,7 @@ RSpec.describe GtfsDf::Feed do
           expect(filtered.calendar["service_id"].to_a).to eq(%w[A])
           expect(filtered.fare_attributes["fare_id"].to_a).to eq(%w[F1 F3])
           expect(filtered.fare_rules["fare_id"].to_a).to eq(%w[F1 F3])
+          expect(filtered.directions["route_id"].to_a).to eq(%w[1 1])
           expect(filtered.calendar_dates).to be(nil)
         end
 
@@ -213,6 +224,7 @@ RSpec.describe GtfsDf::Feed do
           expect(filtered.agency["agency_id"].to_a).to eq(%w[A])
           expect(filtered.fare_attributes["fare_id"].to_a).to eq(%w[F1 F3])
           expect(filtered.fare_rules["fare_id"].to_a).to eq(%w[F1 F3])
+          expect(filtered.directions["route_id"].to_a).to eq(%w[1 1])
           expect(filtered.calendar_dates).to be(nil)
         end
 
@@ -318,6 +330,7 @@ RSpec.describe GtfsDf::Feed do
             # F3 is considered global since there are no associated fare rules
             expect(filtered.fare_rules["route_id"].to_a).to eq(%w[1])
             expect(filtered.fare_attributes["fare_id"].to_a).to eq(%w[F1])
+            expect(filtered.directions["route_id"].to_a).to eq(%w[1 1])
             expect(filtered.calendar_dates).to be(nil)
           end
         end
@@ -339,6 +352,7 @@ RSpec.describe GtfsDf::Feed do
           expect(filtered.calendar["service_id"].to_a).to eq(%w[A B])
           expect(filtered.fare_attributes["fare_id"].to_a).to eq(%w[F1 F2 F3 F4])
           expect(filtered.fare_rules["fare_id"].to_a).to eq(%w[F1 F2 F3 F4])
+          expect(filtered.directions["route_id"].to_a).to eq(%w[1 1 2])
           expect(filtered.calendar_dates["service_id"].to_a).to eq(%w[B])
         end
 
@@ -356,6 +370,7 @@ RSpec.describe GtfsDf::Feed do
           expect(filtered.calendar["service_id"].to_a).to eq(%w[A B])
           expect(filtered.fare_attributes["fare_id"].to_a).to eq(%w[F1 F2 F3 F4])
           expect(filtered.fare_rules["fare_id"].to_a).to eq(%w[F1 F2 F3 F4])
+          expect(filtered.directions["route_id"].to_a).to eq(%w[1 1 2])
           expect(filtered.calendar_dates["service_id"].to_a).to eq(%w[B])
         end
 
@@ -371,6 +386,7 @@ RSpec.describe GtfsDf::Feed do
           expect(filtered.stop_times["stop_id"].to_a).to eq(%w[S1 S2 S3])
           expect(filtered.fare_attributes["fare_id"].to_a).to eq(%w[F1 F3])
           expect(filtered.fare_rules["fare_id"].to_a).to eq(%w[F1 F3])
+          expect(filtered.directions["route_id"].to_a).to eq(%w[1 1])
 
           # Not pruned
           expect(filtered.stops["stop_id"].to_a).to match_array(%w[S1 S2 S3 S4 S5 S6])
@@ -395,6 +411,7 @@ RSpec.describe GtfsDf::Feed do
           expect(filtered.agency["agency_id"].to_a).to eq(%w[A B])
           expect(filtered.fare_attributes["fare_id"].to_a).to eq(%w[F1 F2 F3 F4])
           expect(filtered.fare_rules["fare_id"].to_a).to eq(%w[F1 F2 F3 F4])
+          expect(filtered.directions["route_id"].to_a).to eq(%w[1 1 2])
           expect(filtered.calendar_dates["service_id"].to_a).to eq(%w[B])
         end
       end
@@ -757,7 +774,8 @@ RSpec.describe GtfsDf::Feed do
     it "returns a hash of dataframes by file_name" do
       result = feed.by_dataframe_name
       expect(result.keys).to match_array(["agency", "stops", "routes", "trips",
-        "stop_times", "calendar", "calendar_dates", "fare_attributes", "fare_rules", "frequencies"])
+        "stop_times", "calendar", "calendar_dates", "fare_attributes", "fare_rules", "frequencies",
+        "directions"])
       expect(result.values.first).to be_a(Polars::DataFrame)
     end
   end

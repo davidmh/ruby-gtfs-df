@@ -8,6 +8,7 @@ RSpec.describe GtfsDf::Graph do
       expect(graph.nodes.sort.map(&:first)).to include(*%w[agency
         routes
         trips
+        directions
         stop_times
         stops
         calendar
@@ -41,7 +42,8 @@ RSpec.describe GtfsDf::Graph do
       expect(graph.get_edge_data("routes", "fare_rules")[:dependencies]).to eq([{"fare_rules" => "route_id",
                                                                                  "routes" => "route_id",
                                                                                  :allow_null => true}])
-
+      expect(graph.get_edge_data("routes", "directions")[:dependencies]).to eq([{"directions" => "route_id",
+                                                                                 "routes" => "route_id"}])
       expect(graph.get_edge_data("stops", "transfers")[:dependencies]).to eq([{"stops" => "stop_id",
                                                                                "transfers" => "from_stop_id"},
         {"stops" => "stop_id",
