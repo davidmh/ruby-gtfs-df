@@ -83,6 +83,7 @@ RSpec.describe GtfsDf::Reader do
 
         expect(feed.fare_rules).to be_nil
         expect(feed.fare_attributes).to be_nil
+        expect(feed.directions).to be_nil
         expect(feed.routes).to be_a(Polars::DataFrame)
         expect(feed.trips).to be_a(Polars::DataFrame)
       end

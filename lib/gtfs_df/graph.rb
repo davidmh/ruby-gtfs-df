@@ -3,7 +3,7 @@
 module GtfsDf
   class Graph
     FILES = %w[
-      agency routes trips stop_times calendar calendar_dates shapes transfers frequencies fare_attributes fare_rules
+      agency routes trips directions stop_times calendar calendar_dates shapes transfers frequencies fare_attributes fare_rules
       fare_leg_join_rules fare_transfer_rules areas networks route_networks location_groups location_group_stops booking_rules
       stop_areas fare_leg_rules
     ]
@@ -65,6 +65,9 @@ module GtfsDf
         ["routes", "trips", {dependencies: [
           {"routes" => "route_id", "trips" => "route_id"}
         ]}],
+        ["routes", "directions", {dependencies: [
+          {"directions" => "route_id", "routes" => "route_id"}
+        ], optional: true}],
         ["trips", "stop_times", {dependencies: [
           {"trips" => "trip_id", "stop_times" => "trip_id"}
         ]}],

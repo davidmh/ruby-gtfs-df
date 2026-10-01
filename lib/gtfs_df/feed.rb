@@ -7,6 +7,7 @@ module GtfsDf
       stops
       routes
       trips
+      directions
       stop_times
       calendar
       calendar_dates
