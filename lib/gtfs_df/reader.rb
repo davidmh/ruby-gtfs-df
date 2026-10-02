@@ -8,11 +8,14 @@ module GtfsDf
     # @param parse_times [Boolean] Whether to parse time fields to seconds since midnight (default: false)
     # @param relevant_files [Array<String>] A list of file names, useful to avoid loading tables you don't care about.
     # @return [Feed] The loaded GTFS feed
-    def self.load_from_zip(zip_path, parse_times: false, relevant_files: nil)
+    def self.load_from_zip(zip_path, parse_times: false, relevant_files: nil, extra: nil)
       data = nil
 
       relevant_files ||= GtfsDf::Feed::GTFS_FILES.map { |name| "#{name}.txt" }
       relevant_files = relevant_files.to_set
+      extra ||= {}
+      extra_files = extra[:files] || []
+      extra_classes = extra[:classes] || {}
 
       seen = {}
 
@@ -27,9 +30,11 @@ module GtfsDf
             end
 
             # We're skipping:
-            # - unrelated files
+            # - files neither relevant nor supported by extra
             # - empty feed files
-            next unless relevant_files.include?(file_name) && has_header?(entry)
+            file_name_truncated = file_name.split(".").first # without the .txt extension
+            relevant_or_extra = relevant_files.include?(file_name) || (extra_files.include?(file_name_truncated) && extra_classes.key?(file_name_truncated.to_sym))
+            next unless relevant_or_extra && has_header?(entry)
 
             seen[file_name] = entry.name
 
@@ -37,7 +42,7 @@ module GtfsDf
           end
         end
 
-        data = load_from_dir(tmpdir, parse_times:, relevant_files:)
+        data = load_from_dir(tmpdir, parse_times:, relevant_files:, extra:)
       end
 
       data
@@ -49,23 +54,31 @@ module GtfsDf
     # @param parse_times [Boolean] Whether to parse time fields to seconds since midnight (default: false)
     # @param relevant_files [Array<String>] A list of file names, useful to avoid loading tables you don't care about.
     # @return [Feed] The loaded GTFS feed
-    def self.load_from_dir(dir_path, parse_times: false, relevant_files: nil)
+    def self.load_from_dir(dir_path, parse_times: false, relevant_files: nil, extra: nil)
       relevant_files ||= GtfsDf::Feed::GTFS_FILES.map { |name| "#{name}.txt" }
       relevant_files = relevant_files.to_set
+      extra ||= {}
+      extra_files = extra[:files] || []
+      extra_classes = extra[:classes] || {}
 
       data = {}
-      GtfsDf::Feed::GTFS_FILES.each do |gtfs_file|
+      (GtfsDf::Feed::GTFS_FILES + extra_files).each do |gtfs_file|
         basename = "#{gtfs_file}.txt"
         path = File.join(dir_path, basename)
-        next unless relevant_files.include?(basename) && File.exist?(path)
+        relevant_or_extra = relevant_files.include?(basename) || (extra_files.include?(gtfs_file) && extra_classes.key?(gtfs_file.to_sym))
+        next unless relevant_or_extra && File.exist?(path)
 
-        data[gtfs_file] = data_frame(gtfs_file, path)
+        data[gtfs_file] = data_frame(gtfs_file, path, extra_classes)
       end
 
+      # TODO: Pass extra along to feed; currently feed just drops the extra data
       GtfsDf::Feed.new(data, parse_times: parse_times)
     end
 
-    private_class_method def self.data_frame(gtfs_file, path)
+    private_class_method def self.data_frame(gtfs_file, path, extra_classes)
+      custom_class = extra_classes[gtfs_file.to_sym]
+      return custom_class.new(path).df if custom_class
+
       schema_class_name = gtfs_file.split("_").map(&:capitalize).join
       GtfsDf::Schema.const_get(schema_class_name).new(path).df
     end

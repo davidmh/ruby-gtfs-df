@@ -3,6 +3,21 @@
 require "gtfs_df"
 require "pry-byebug"
 
+# Custom schema class for testing extra parameter across reader, feed, graph, etc.
+class Directions < GtfsDf::BaseGtfsTable
+  SCHEMA = {
+    "route_id" => Polars::String,
+    "direction_id" => Polars::Enum.new(GtfsDf::Schema::EnumValues::DIRECTION_ID.map(&:first)),
+    "direction" => Polars::String
+  }
+
+  REQUIRED_FIELDS = %w[route_id direction_id direction].freeze
+
+  ENUM_VALUE_MAP = {
+    "direction_id" => :DIRECTION_ID
+  }
+end
+
 RSpec.configure do |config|
   # Enable flags like --only-failures and --next-failure
   config.example_status_persistence_file_path = ".rspec_status"
