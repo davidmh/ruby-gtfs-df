@@ -11,13 +11,13 @@ module GtfsDf
       require "zlib"
       FileUtils.mkdir_p(File.dirname(zip_path))
       Zip::File.open(zip_path, create: true) do |zipfile|
-        GtfsDf::Feed::GTFS_FILES.each do |file|
+        output_files(feed).each do |file|
           df = feed.send(file)
           next unless df.is_a?(Polars::DataFrame)
 
           # Convert time fields back to strings if parse_times was enabled
           if feed.parse_times
-            df = format_time_fields(file, df)
+            df = format_time_fields(file, df, feed)
           end
 
           # Write CSV to StringIO
@@ -37,26 +37,34 @@ module GtfsDf
     # @param dir_path [String] The path where the directory will be created
     def self.write_to_dir(feed, dir_path)
       FileUtils.mkdir_p(dir_path)
-      GtfsDf::Feed::GTFS_FILES.each do |file|
+      output_files(feed).each do |file|
         df = feed.send(file)
         next unless df.is_a?(Polars::DataFrame)
 
         # Convert time fields back to strings if parse_times was enabled
-        df = format_time_fields(file, df) if feed.parse_times
+        df = format_time_fields(file, df, feed) if feed.parse_times
 
         # Write CSV directly to file
         df.write_csv(File.join(dir_path, "#{file}.txt"))
       end
     end
 
+    def self.output_files(feed)
+      extra_files = feed.extra&.[](:files) || []
+      GtfsDf::Feed::GTFS_FILES + extra_files
+    end
+    private_class_method :output_files
+
     # Formats time fields back to HH:MM:SS strings for a given GTFS file
     #
     # @param file [String] The GTFS file name (e.g., "stop_times")
     # @param df [Polars::DataFrame] The DataFrame to format
     # @return [Polars::DataFrame] DataFrame with time fields formatted as strings
-    def self.format_time_fields(file, df)
-      schema_class_name = file.split("_").map(&:capitalize).join
-      schema_class = begin
+    def self.format_time_fields(file, df, feed = nil)
+      extra_classes = feed&.extra&.[](:classes) || {}
+      schema_class = extra_classes[file.to_sym]
+      schema_class ||= begin
+        schema_class_name = file.split("_").map(&:capitalize).join
         GtfsDf::Schema.const_get(schema_class_name)
       rescue
         nil

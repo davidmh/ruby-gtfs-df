@@ -38,7 +38,7 @@ module GtfsDf
 
     attr_accessor(*GTFS_FILES)
     attr_accessor(:parse_times)
-    attr_reader(:graph)
+    attr_reader(:graph, :extra)
 
     # Initialize with a hash of DataFrames
     REQUIRED_GTFS_FILES = %w[agency stops routes trips stop_times].freeze
