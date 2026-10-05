@@ -990,4 +990,49 @@ RSpec.describe GtfsDf::Feed do
       expect(filtered.trips["trip_id"].to_a).to match_array(%w[t1 t2])
     end
   end
+
+  describe "extra files" do
+    let(:directions_df) do
+      Polars::DataFrame.new({
+        "route_id" => %w[1 1 2],
+        "direction_id" => %w[0 1 0],
+        "direction" => %w[Inbound Outbound Inbound]
+      })
+    end
+    let(:extra) do
+      {
+        files: %w[directions],
+        classes: {directions: Directions},
+        graph_edges: [
+          ["routes", "directions", {dependencies: [
+            {"directions" => "route_id", "routes" => "route_id"}
+          ], optional: true}]
+        ]
+      }
+    end
+    let(:feed) { described_class.new(feed_dfs.merge("directions" => directions_df), parse_times: true, extra:) }
+
+    it "exposes the extra dataframe" do
+      expect(feed.directions).to eq(directions_df)
+    end
+
+    it "filters on extraneous rows (directions) based on specified association (routes)" do
+      filtered = feed.filter({"routes" => {"route_id" => "1"}})
+
+      expect(filtered).to respond_to(:directions)
+      expect(filtered.directions["route_id"].to_a).to eq(%w[1 1])
+    end
+
+    it "filters on extraneous rows (directions) based on indirect association (trips)" do
+      filtered = feed.filter({"trips" => {"trip_id" => "t1"}})
+
+      expect(filtered.directions["route_id"].to_a).to eq(%w[1 1])
+    end
+
+    it "prunes extraneous rows (directions) when filtering with filter_only_children" do
+      filtered = feed.filter({"routes" => {"route_id" => "1"}}, filter_only_children: true)
+
+      expect(filtered.directions["route_id"].to_a).to eq(%w[1 1])
+    end
+  end
 end

@@ -98,4 +98,28 @@ RSpec.describe GtfsDf::Graph do
         )
     end
   end
+
+  describe ".build with extra files" do
+    let(:extra_edges) do
+      [["routes", "directions", {dependencies: [
+        {"directions" => "route_id", "routes" => "route_id"}
+      ], optional: true}]]
+    end
+    let(:graph) { described_class.build(extra_files: %w[directions], extra_edges:) }
+
+    it "adds the extra file as a node and edge" do
+      expect(graph.nodes.map(&:first)).to include("directions")
+      expect(graph.get_edge_data("routes", "directions")[:dependencies]).to eq([
+        {"directions" => "route_id", "routes" => "route_id"}
+      ])
+      expect(graph.get_edge_data("routes", "directions")[:optional]).to be true
+    end
+
+    it "marks the reverse edge weak when bidirectional" do
+      bidirectional = described_class.build(bidirectional: true, extra_files: %w[directions], extra_edges:)
+
+      expect(bidirectional.get_edge_data("directions", "routes")[:type]).to eq(:weak)
+      expect(bidirectional.get_edge_data("routes", "directions")[:type]).not_to eq(:weak)
+    end
+  end
 end

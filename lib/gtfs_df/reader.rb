@@ -71,8 +71,7 @@ module GtfsDf
         data[gtfs_file] = data_frame(gtfs_file, path, extra_classes)
       end
 
-      # TODO: Pass extra along to feed; currently feed just drops the extra data
-      GtfsDf::Feed.new(data, parse_times: parse_times)
+      GtfsDf::Feed.new(data, parse_times: parse_times, extra: extra)
     end
 
     private_class_method def self.data_frame(gtfs_file, path, extra_classes)
