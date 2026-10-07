@@ -1,3 +1,14 @@
+## [0.13.0] - 2026-10-07
+
+### 🚀 Features
+
+- Add custom file processing to reader
+- Add custom file processing to feed and graph
+- Add custom file processing to writer
+
+### 💼 Other
+
+- Devenv 2
 ## [0.12.0] - 2026-06-12
 
 ### 🚀 Features
@@ -8,6 +19,10 @@
 
 - Truncate ragged lines
 - Consider BOM when looking for empty files
+
+### ⚙️ Miscellaneous Tasks
+
+- Bump version to 0.12.0
 ## [0.11.1] - 2026-04-28
 
 ### 🐛 Bug Fixes
