@@ -40,10 +40,17 @@ module GtfsDf
 
     NODES = STANDARD_FILE_NODES.merge(STOP_NODES).freeze
 
+    def self.all_nodes(extra_files: [])
+      extra_nodes = extra_files.map do |file|
+        [file, {id: file, file: file, filter: nil}]
+      end.to_h
+      NODES.merge(extra_nodes)
+    end
+
     # Returns a directed graph of GTFS file dependencies
-    def self.build(bidirectional: false)
+    def self.build(bidirectional: false, extra_edges: [], extra_files: [])
       g = NetworkX::DiGraph.new
-      NODES.keys.each { |node| g.add_node(node) }
+      all_nodes(extra_files:).keys.each { |node| g.add_node(node) }
 
       # Edges should be parent, child
       # TODO: Add fare_rules -> stops + test
@@ -160,6 +167,7 @@ module GtfsDf
           {"booking_rules" => "booking_rule_id", "stop_times" => "drop_off_booking_rule_id"}
         ]}]
       ]
+      edges += extra_edges
 
       edges.each do |from, to, attrs|
         g.add_edge(from, to, **attrs)

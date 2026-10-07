@@ -38,15 +38,17 @@ module GtfsDf
 
     attr_accessor(*GTFS_FILES)
     attr_accessor(:parse_times)
-    attr_reader(:graph)
+    attr_reader(:graph, :extra)
 
     # Initialize with a hash of DataFrames
     REQUIRED_GTFS_FILES = %w[agency stops routes trips stop_times].freeze
 
     # @param data [Hash] Hash of DataFrames for each GTFS file
     # @param parse_times [Boolean] Whether to parse time fields to seconds since midnight (default: false)
-    def initialize(data = {}, parse_times: false)
+    # @param extra [Hash] Extra file metadata to include in the feed; see README
+    def initialize(data = {}, parse_times: false, extra: {})
       @parse_times = parse_times
+      @extra = extra
 
       missing = REQUIRED_GTFS_FILES.reject { |file| data[file].is_a?(Polars::DataFrame) }
       # At least one of calendar or calendar_dates must be present
@@ -59,12 +61,16 @@ module GtfsDf
         end.join(", ")}"
       end
 
-      @graph = GtfsDf::Graph.build
+      extra_files = @extra[:files] || []
+      extra_edges = @extra[:graph_edges] || []
+      extra_classes = @extra[:classes] || {}
+      @graph = GtfsDf::Graph.build(extra_edges:, extra_files:)
+      singleton_class.attr_accessor(*extra_files)
 
-      GTFS_FILES.each do |file|
+      (GTFS_FILES + extra_files).each do |file|
         df = data[file]
-        schema_class_name = file.split("_").map(&:capitalize).join
-        schema_class = begin
+        schema_class = extra_classes[file.to_sym] || begin
+          schema_class_name = file.split("_").map(&:capitalize).join
           GtfsDf::Schema.const_get(schema_class_name)
         rescue
           nil
@@ -106,7 +112,7 @@ module GtfsDf
     def filter(view, filter_only_children: false)
       filtered = {}
 
-      GTFS_FILES.each do |file|
+      (GTFS_FILES + (@extra[:files] || [])).each do |file|
         df = send(file)
         next unless df
 
@@ -145,7 +151,7 @@ module GtfsDf
 
         (!df || df.height == 0) && !is_required_file
       end
-      self.class.new(filtered, parse_times: @parse_times)
+      self.class.new(filtered, parse_times: @parse_times, extra: @extra)
     end
 
     # Utility method that returns a hash of dataframes by file name
@@ -374,7 +380,10 @@ module GtfsDf
     # not dropped when another edge is processed first.
     def prune!(root, filtered, filter_only_children: false)
       seen_edges = Set.new
-      rerooted_graph = Graph.build(bidirectional: !filter_only_children)
+      extra_files = @extra[:files] || []
+      extra_edges = @extra[:graph_edges] || []
+      all_nodes = Graph.all_nodes(extra_files:)
+      rerooted_graph = Graph.build(bidirectional: !filter_only_children, extra_edges:, extra_files:)
       accumulated_service_ids = Polars::Series.new("service_id", dtype: Polars::String)
       trips_base_df = nil
 
@@ -388,8 +397,8 @@ module GtfsDf
           next if seen_edges.include?(edge)
           seen_edges.add(edge)
 
-          parent_node = Graph::NODES[parent_node_id]
-          child_node = Graph::NODES[child_node_id]
+          parent_node = all_nodes[parent_node_id]
+          child_node = all_nodes[child_node_id]
           parent_df = filtered[parent_node.fetch(:file)]
           next unless parent_df
 

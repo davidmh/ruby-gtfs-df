@@ -109,19 +109,34 @@ RSpec.describe GtfsDf::Reader do
     end
   end
 
-  describe "extraneous/empty files" do
+  describe "extraneous/empty files, with and without custom schemas" do
     let(:zip_path) do
       # This file has:
       # - a calendar_dates.txt, but it's empty, not even headers
-      # - an extraneous file
+      # - an extra file not in GTFS spec (directions.txt)
       File.expand_path("../fixtures/extraneous-and-empty-files.zip", __dir__)
     end
 
-    it "can extract with empty or extraneous files" do
+    it "can extract with empty or extraneous file without custom schema" do
       feed = described_class.load_from_zip(zip_path)
 
       expect(feed.calendar_dates).to be(nil)
       expect(feed.calendar).not_to be(nil)
+      expect(feed).not_to respond_to(:directions)
+    end
+
+    it "can extract with empty or extraneous file with a custom schema" do
+      feed = described_class.load_from_zip(zip_path, extra: {
+        files: %w[directions],
+        classes: {directions: Directions},
+        graph_edges: [
+          ["routes", "directions", {dependencies: ["directions" => "route_id", "routes" => "route_id"], optional: true}]
+        ]
+      })
+
+      expect(feed.calendar_dates).to be(nil)
+      expect(feed.calendar).not_to be(nil)
+      expect(feed.directions).not_to be(nil)
     end
   end
 

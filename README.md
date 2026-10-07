@@ -35,6 +35,18 @@ feed = GtfsDf::Reader.load_from_zip('path/to/gtfs.zip')
 # Or, load from a directory
 feed = GtfsDf::Reader.load_from_dir('path/to/gtfs_dir')
 
+# Load methods accept an 'extra' parameter that specifies custom files and how to build them
+extra = {
+  files: %w[directions],
+  classes: {
+    directions: DirectionsClass,
+  },
+  graph_edges: [
+    ["routes", "directions", {dependencies: [{"directions" => "route_id", "routes" => "route_id"}], optional: true}]
+  ],
+}
+GtfsDf::Reader.load_from_zip('path/to/gtfs.zip', extra:)
+
 # Parse times as seconds since midnight instead of string
 feed = GtfsDf::Reader.load_from_dir('path/to/gtfs_dir', parse_times: true)
 

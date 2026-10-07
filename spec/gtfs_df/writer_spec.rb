@@ -158,4 +158,47 @@ RSpec.describe GtfsDf::Writer do
       end
     end
   end
+
+  describe "extra files" do
+    let(:fixture_zip) { File.expand_path("../fixtures/extraneous-and-empty-files.zip", __dir__) }
+    let(:output_dir) { File.expand_path("../../fixtures/output_dir", __dir__) }
+    let(:extra) do
+      {
+        files: %w[directions],
+        classes: {directions: Directions},
+        graph_edges: [
+          ["routes", "directions", {dependencies: [
+            {"directions" => "route_id", "routes" => "route_id"}
+          ], optional: true}]
+        ]
+      }
+    end
+
+    after do
+      FileUtils.rm_rf(output_dir)
+    end
+
+    it "round-trips extra files" do
+      original = GtfsDf::Reader.load_from_zip(fixture_zip, extra:)
+      described_class.write_to_zip(original, output_zip)
+
+      Zip::File.open(output_zip) do |zip|
+        expect(zip.find_entry("directions.txt")).not_to be_nil
+      end
+
+      reloaded = GtfsDf::Reader.load_from_zip(output_zip, extra:)
+      expect(reloaded.directions["route_id"].to_a).to eq(original.directions["route_id"].to_a)
+      expect(reloaded.directions["direction"].to_a).to eq(original.directions["direction"].to_a)
+    end
+
+    it "writes only filtered rows for extra files" do
+      feed = GtfsDf::Reader.load_from_zip(fixture_zip, extra:)
+      filtered = feed.filter({"routes" => {"route_id" => "AB"}})
+      described_class.write_to_zip(filtered, output_zip)
+
+      reloaded = GtfsDf::Reader.load_from_zip(output_zip, extra:)
+      expect(reloaded.directions["route_id"].to_a).to eq(%w[AB AB])
+      expect(reloaded.directions["direction"].to_a).to eq(%w[Northbound Southbound])
+    end
+  end
 end
